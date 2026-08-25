@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+use App\Models\ProductImage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,10 +44,13 @@ class Product extends Model
 {
     return $this->belongsTo(SubCategory::class, 'subcategory_id');
 }
-  public function images()
-{
-    return $this->hasMany(ProductImage::class, 'product_id');
 
+public function images()
+{
+    return $this->hasMany(
+        ProductImage::class,
+        'product_id'
+    );
 }
 
 

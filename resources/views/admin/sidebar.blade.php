@@ -111,6 +111,15 @@ Categories
     </a>
 </li>
 
+<!-- Single Collection Pro Link -->
+<!-- Collection Pro -->
+<li class="menu-item {{ request()->routeIs('collection-pro.*') ? 'active' : '' }}">
+    <a href="{{ route('collection-pro.index') }}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-collection"></i>
+        <div data-i18n="Collection Pro">Collection Pro</div>
+    </a>
+</li>
+
 <li class="menu-item {{ request()->routeIs('admin.features.*') ? 'active' : '' }}">
     <a href="{{ route('admin.features.index') }}" class="menu-link">
 

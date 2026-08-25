@@ -420,9 +420,46 @@
     </div>
 </section>
 
- @if($collectionss)
+<!-- Collection Pro Section (Classic Winter Banner) -->
+@if(isset($collectionPro) && $collectionPro)
+<section class="collection bg-light position-relative py-5">
+    <div class="container">
+        <div class="row">
+            <div class="title-xlarge text-uppercase txt-fx domino">
+                Collection Pro
+            </div>
 
+            <div class="collection-item d-flex flex-wrap my-5">
+                <div class="col-md-6 column-container">
+                    <div class="image-holder">
+                        <img src="{{ asset('storage/' . $collectionPro->image) }}"
+                             alt="{{ $collectionPro->title }}"
+                             class="product-image img-fluid">
+                    </div>
+                </div>
 
+                <div class="col-md-6 column-container bg-white">
+                    <div class="collection-content p-5 m-0 m-md-5">
+                        <h3 class="element-title text-uppercase">
+                            {{ $collectionPro->title }}
+                        </h3>
+
+                        <p>{{ $collectionPro->description }}</p>
+
+                        @if($collectionPro->button_link)
+                            <a href="{{ $collectionPro->button_link }}"
+                               class="btn btn-dark text-uppercase mt-3">
+                                Discover Now
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@elseif(isset($collectionss) && $collectionss)
+<!-- Fallback Main Collection Section -->
 <section class="collection bg-light position-relative py-5">
     <div class="container">
         <div class="row">
@@ -433,7 +470,7 @@
             <div class="collection-item d-flex flex-wrap my-5">
                 <div class="col-md-6 column-container">
                     <div class="image-holder">
-                        <img src="{{ asset('storage/'.$collectionss->image) }}"
+                        <img src="{{ asset('storage/' . $collectionss->image) }}"
                              alt="{{ $collectionss->name }}"
                              class="product-image img-fluid">
                     </div>
@@ -453,7 +490,6 @@
                         </a>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>

@@ -6,41 +6,31 @@ use Illuminate\Http\Request;
 use App\Models\Billboard;
 use App\Models\Feature;
 use App\Models\Collection;
+use App\Models\CollectionPro;
 use App\Models\Category;
 use App\Models\Product;
 
-
-
 class HomeController extends Controller
 {
-    /**
-     * Display Homepage
-     */
     public function index()
     {
         // Active Billboard
         $billboard = Billboard::where('status', 1)->first();
 
         // Active Features
-        $features = Feature::where('status', 1)
-            ->latest()
-            ->take(4)
-            ->get();
+        $features = Feature::where('status', 1)->latest()->take(4)->get();
 
-        // Active Collections
-        $collections = Collection::where('status', 'active')
-            ->latest()
-            ->get();
+        // Active Collections (Multiple Images/Items)
+        $collections = Collection::where('status', 'active')->latest()->get();
+
+        // Single Latest Collection for Hero Banner Section
+        $collectionss = Collection::where('status', 'active')->latest()->first();
+
+        // Single Classic Winter / Featured Item (Collection Pro)
+        $collectionPro = CollectionPro::where('status', 1)->latest()->first();
 
         // Active Categories
-        $categories = Category::where('status', 'active')
-            ->latest()
-            ->get();
-
-        // Latest Collection
-        $collectionss = Collection::where('status', 'active')
-            ->latest()
-            ->first();
+        $categories = Category::where('status', 'active')->latest()->get();
 
         // Latest Products
         $products = Product::with(['images', 'category', 'subcategory'])
@@ -52,15 +42,13 @@ class HomeController extends Controller
             'billboard',
             'features',
             'collections',
-            'categories',
             'collectionss',
+            'collectionPro',
+            'categories',
             'products'
         ));
     }
 
-    /**
-     * Collection Details
-     */
     public function collectionDetails($uuid)
     {
         $collection = Collection::with('category.subcategories.products.images')
@@ -76,29 +64,23 @@ class HomeController extends Controller
         return view('home.collections', compact('collection', 'products'));
     }
 
-    /**
-     * All Products Page
-     */
-  public function products()
-{
-    // dd('asd');
-    $products = Product::with('images')
-                ->where('status', 1)
-                ->latest()
-                ->paginate(12);
+    public function products()
+    {
+        $products = Product::with('images')
+            ->where('status', 1)
+            ->latest()
+            ->paginate(12);
 
-    return view('home.products', compact('products'));
-}
-    /**
-     * Product Details
-     */
- public function productDetails($uuid)
-{
-    $product = Product::with('images')
-        ->where('uuid', $uuid)
-        ->where('status', 1)
-        ->firstOrFail();
+        return view('home.products', compact('products'));
+    }
 
-    return view('home.product_details', compact('product'));
-}
+    public function productDetails($uuid)
+    {
+        $product = Product::with('images')
+            ->where('uuid', $uuid)
+            ->where('status', 1)
+            ->firstOrFail();
+
+        return view('home.product_details', compact('product'));
+    }
 }

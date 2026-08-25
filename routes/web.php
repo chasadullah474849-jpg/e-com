@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\ProductImageController;
 
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CollectionProController;
 
 
 /*
@@ -205,12 +206,28 @@ Route::delete('/subcategories/{id}', [SubCategoryController::class, 'destroy'])-
 | SHOPPING CART
 |--------------------------------------------------------------------------
 */
+Route::prefix('cart')->group(function () {
 
-Route::get('/cart', [CartController::class, 'cart'])->name('cart');
-Route::post('/cart/add/{uuid}', [CartController::class, 'addToCart'])->name('cart.add');
-Route::post('/cart/update-quantity', [CartController::class, 'updateQuantity'])->name('cart.update-quantity');
-Route::post('/cart/remove/{uuid}', [CartController::class, 'remove'])->name('cart.remove');
+    // Add product
+    Route::post('/add/{uuid}', [CartController::class, 'addToCart'])
+        ->name('cart.add');
 
+    // Full cart page
+    Route::get('/', [CartController::class, 'cart'])
+        ->name('cart');
+
+    // Update cart quantity
+    Route::post('/update-quantity', [CartController::class, 'updateQuantity'])
+        ->name('cart.update-quantity');
+
+    // Remove product
+    Route::delete('/remove/{uuid}', [CartController::class, 'remove'])
+        ->name('cart.remove');
+
+    // Clear cart
+    Route::delete('/clear', [CartController::class, 'clear'])
+        ->name('cart.clear');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -226,3 +243,15 @@ Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('
 Route::post('/checkout/logout', [CheckoutController::class, 'logout'])->name('checkout.logout');
 Route::post('/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place');
 Route::get('/order-success', [CheckoutController::class, 'orderSuccess'])->name('order.success');
+
+
+
+
+
+
+Route::prefix('admin')->group(function () {
+    Route::resource('collection-pro', CollectionProController::class);
+});
+
+// Front-end detail route using UUID
+Route::get('/collection-pro/{uuid}', [HomeController::class, 'collectionProDetails'])->name('collection-pro.details');
