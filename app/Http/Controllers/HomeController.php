@@ -9,6 +9,7 @@ use App\Models\Collection;
 use App\Models\CollectionPro;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Blog;
 
 class HomeController extends Controller
 {
@@ -38,6 +39,11 @@ class HomeController extends Controller
             ->take(10)
             ->get();
 
+         $blogs = Blog::where('status', 1)
+        ->latest()
+        ->take(3)
+        ->get();
+
         return view('home.index', compact(
             'billboard',
             'features',
@@ -45,7 +51,8 @@ class HomeController extends Controller
             'collectionss',
             'collectionPro',
             'categories',
-            'products'
+            'products',
+            'blogs'
         ));
     }
 
@@ -83,4 +90,17 @@ class HomeController extends Controller
 
         return view('home.product_details', compact('product'));
     }
+    public function blogs()
+{
+    $blogs = Blog::latest()->get();
+
+    return view('home.blogs', compact('blogs'));
+}
+
+public function blogDetails($uuid)
+{
+    $blog = Blog::where('uuid', $uuid)->firstOrFail();
+
+    return view('home.blog-details', compact('blog'));
+}
 }

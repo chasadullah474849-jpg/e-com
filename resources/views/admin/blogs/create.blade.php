@@ -108,15 +108,6 @@
 
 </div>
 
-<div class="mb-3">
-
-<label>Details</label>
-
-<textarea name="details"
-          class="form-control"
-          rows="8">{{ old('details') }}</textarea>
-
-</div>
 
 <div class="mb-3">
 

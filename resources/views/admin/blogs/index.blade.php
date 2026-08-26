@@ -127,10 +127,12 @@
 
                         <td>
 
-                            <a href="{{ route('admin.blogs.edit',$blog->id) }}"
-                               class="btn btn-sm btn-primary">
-                                Edit
-                            </a>
+                            <a
+    href="{{ route('admin.blogs.edit', ['id' => $blog->id]) }}"
+    class="btn btn-primary btn-sm"
+>
+    Edit
+</a>
 
                             <form action="{{ route('admin.blogs.destroy',$blog->id) }}"
                                   method="POST"

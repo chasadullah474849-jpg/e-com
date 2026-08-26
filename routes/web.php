@@ -168,12 +168,39 @@ Route::prefix('admin')
         Route::delete('/testimonials/{uuid}', [TestimonialController::class, 'destroy'])->name('testimonials.destroy');
 
         /* Blogs */
-        Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
-        Route::get('/blogs/create', [BlogController::class, 'create'])->name('blogs.create');
-        Route::post('/blogs', [BlogController::class, 'store'])->name('blogs.store');
-        Route::get('/blogs/{blog}/edit', [BlogController::class, 'edit'])->name('blogs.edit');
-        Route::put('/blogs/{blog}', [BlogController::class, 'update'])->name('blogs.update');
-        Route::delete('/blogs/{blog}', [BlogController::class, 'destroy'])->name('blogs.destroy');
+       /*
+|--------------------------------------------------------------------------
+| BLOGS - ADMIN CRUD
+|--------------------------------------------------------------------------
+*/
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Admin Blog Routes
+|--------------------------------------------------------------------------
+*/
+
+
+    Route::get('/blogs', [BlogController::class, 'index'])
+        ->name('blogs.index');
+
+    Route::get('/blogs/create', [BlogController::class, 'create'])
+        ->name('blogs.create');
+
+    Route::post('/blogs', [BlogController::class, 'store'])
+        ->name('blogs.store');
+
+    Route::get('/blogs/{id}/edit', [BlogController::class, 'edit'])
+        ->name('blogs.edit');
+
+    Route::put('/blogs/{id}', [BlogController::class, 'update'])
+        ->name('blogs.update');
+
+    Route::delete('/blogs/{id}', [BlogController::class, 'destroy'])
+        ->name('blogs.destroy');
+
 
         /* Collections (Admin Panel Routes) */
         Route::get('/collections', [CollectionController::class, 'index'])->name('collections.index');
@@ -325,3 +352,12 @@ Route::prefix('admin')->group(function () {
 
 // Front-end detail route using UUID
 Route::get('/collection-pro/{uuid}', [HomeController::class, 'collectionProDetails'])->name('collection-pro.details');
+
+
+
+
+Route::get('/blogs', [HomeController::class, 'blogs'])
+    ->name('blogs');
+
+Route::get('/blog/{id}', [HomeController::class, 'blogDetails'])
+    ->name('blog.details');

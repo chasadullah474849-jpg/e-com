@@ -1,203 +1,550 @@
 <!DOCTYPE html>
-
-<!-- =========================================================
-* Sneat - Bootstrap 5 HTML Admin Template - Pro | v1.0.0
-==============================================================
-
-* Product Page: https://themeselection.com/products/sneat-bootstrap-html-admin-template/
-* Created by: ThemeSelection
-* License: You must have a valid license purchased in order to legally use the theme for your project.
-* Copyright ThemeSelection (https://themeselection.com)
-
-=========================================================
- -->
-<!-- beautify ignore:start -->
 <html
-  lang="en"
-  class="light-style layout-menu-fixed"
-  dir="ltr"
-  data-theme="theme-default"
-  data-assets-path="../assets/"
-  data-template="vertical-menu-template-free"
+    lang="en"
+    class="light-style layout-menu-fixed"
+    dir="ltr"
+    data-theme="theme-default"
+    data-assets-path="../assets/"
+    data-template="vertical-menu-template-free"
 >
-  <head>
+
+<head>
+
     @include('admin.header')
-  </head>
 
-  <body>
+</head>
+
+<body>
+
     @include('admin.sidebar')
+
+
     <div class="layout-wrapper layout-content-navbar">
-      <div class="layout-container">
-        <!-- Menu -->
 
+        <div class="layout-container">
 
-        <!-- / Menu -->
+            <div class="layout-page">
 
-        <!-- Layout container -->
-        <div class="layout-page">
                 @include('admin.nav')
 
 
-                <div class="container-fluid">
+                <div class="container-fluid py-4">
 
-<div class="card">
 
-<div class="card-header">
+                    {{-- ================================================== --}}
+                    {{-- Success Message --}}
+                    {{-- ================================================== --}}
 
-<h4>Edit Blog</h4>
+                    @if(session('success'))
 
-</div>
+                        <div
+                            class="alert alert-success alert-dismissible fade show"
+                            role="alert"
+                        >
 
-<div class="card-body">
+                            <strong>Success!</strong>
+                            {{ session('success') }}
 
-<form action="{{ route('admin.blogs.update',$blog->id) }}"
-      method="POST"
-      enctype="multipart/form-data">
+                            <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close"
+                            ></button>
 
-@csrf
-@method('PUT')
+                        </div>
 
-<div class="mb-3">
+                    @endif
 
-<label>Category</label>
 
-<select name="category_id"
-        class="form-control">
 
-@foreach($categories as $category)
+                    {{-- ================================================== --}}
+                    {{-- Error Messages --}}
+                    {{-- ================================================== --}}
 
-<option value="{{ $category->id }}"
-@if($blog->category_id==$category->id)
-selected
-@endif>
+                    @if($errors->any())
 
-{{ $category->name }}
+                        <div
+                            class="alert alert-danger alert-dismissible fade show"
+                            role="alert"
+                        >
 
-</option>
+                            <strong>
+                                Please fix the following errors:
+                            </strong>
 
-@endforeach
+                            <ul class="mb-0 mt-2">
 
-</select>
+                                @foreach($errors->all() as $error)
 
-</div>
+                                    <li>
+                                        {{ $error }}
+                                    </li>
 
-<div class="mb-3">
+                                @endforeach
 
-<label>Name</label>
+                            </ul>
 
-<input type="text"
-       name="name"
-       class="form-control"
-       value="{{ $blog->name }}">
+                            <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close"
+                            ></button>
 
-</div>
+                        </div>
 
-<div class="mb-3">
+                    @endif
 
-<label>Title</label>
 
-<input type="text"
-       name="title"
-       class="form-control"
-       value="{{ $blog->title }}">
 
-</div>
+                    {{-- ================================================== --}}
+                    {{-- Edit Blog Card --}}
+                    {{-- ================================================== --}}
 
-<div class="mb-3">
+                    <div class="card">
 
-<label>Description</label>
 
-<textarea name="description"
-          class="form-control"
-          rows="4">{{ $blog->description }}</textarea>
+                        {{-- Card Header --}}
 
-</div>
+                        <div class="card-header">
 
-<div class="mb-3">
+                            <h4 class="mb-0">
+                                Edit Blog
+                            </h4>
 
-<label>Details</label>
+                        </div>
 
-<textarea name="details"
-          class="form-control"
-          rows="8">{{ $blog->details }}</textarea>
 
-</div>
 
-<div class="mb-3">
+                        {{-- Card Body --}}
 
-<label>Current Image</label>
+                        <div class="card-body">
 
-<br>
 
-@if($blog->image)
+                            {{-- ================================================== --}}
+                            {{-- UPDATE FORM --}}
+                            {{-- ================================================== --}}
 
-<img src="{{ asset('uploads/blogs/'.$blog->image) }}"
-width="120">
+                            <form
+                                action="{{ route('admin.blogs.update', ['id' => $blog->id]) }}"
+                                method="POST"
+                                enctype="multipart/form-data"
+                            >
 
-@endif
+                                @csrf
 
-</div>
+                                @method('PUT')
 
-<div class="mb-3">
 
-<label>Change Image</label>
 
-<input type="file"
-       name="image"
-       class="form-control">
+                                {{-- ================================================== --}}
+                                {{-- Category --}}
+                                {{-- ================================================== --}}
 
-</div>
+                                <div class="mb-3">
 
-<div class="mb-3">
+                                    <label
+                                        for="category_id"
+                                        class="form-label"
+                                    >
+                                        Category
+                                    </label>
 
-<label>Status</label>
 
-<select name="status"
-        class="form-control">
+                                    <select
+                                        name="category_id"
+                                        id="category_id"
+                                        class="form-select @error('category_id') is-invalid @enderror"
+                                        required
+                                    >
 
-<option value="1"
-@if($blog->status==1)
-selected
-@endif>
-Active
-</option>
+                                        <option value="">
+                                            Select Category
+                                        </option>
 
-<option value="0"
-@if($blog->status==0)
-selected
-@endif>
-Inactive
-</option>
 
-</select>
+                                        @foreach($categories as $category)
 
-</div>
+                                            <option
+                                                value="{{ $category->id }}"
+                                                {{ old('category_id', $blog->category_id) == $category->id ? 'selected' : '' }}
+                                            >
 
-<button class="btn btn-success">
+                                                {{ $category->name }}
 
-Update Blog
+                                            </option>
 
-</button>
+                                        @endforeach
 
-<a href="{{ route('admin.blogs.index') }}"
-class="btn btn-secondary">
+                                    </select>
 
-Back
 
-</a>
+                                    @error('category_id')
 
-</form>
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
 
-</div>
+                                    @enderror
 
-</div>
+                                </div>
 
-</div>
 
 
-@include('admin.footer')
+                                {{-- ================================================== --}}
+                                {{-- Name --}}
+                                {{-- ================================================== --}}
 
-@include('admin.js')
+                                <div class="mb-3">
 
-  </body>
+                                    <label
+                                        for="name"
+                                        class="form-label"
+                                    >
+                                        Name
+                                    </label>
+
+
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        id="name"
+                                        class="form-control @error('name') is-invalid @enderror"
+                                        value="{{ old('name', $blog->name) }}"
+                                        required
+                                    >
+
+
+                                    @error('name')
+
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Title --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="title"
+                                        class="form-label"
+                                    >
+                                        Title
+                                    </label>
+
+
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        id="title"
+                                        class="form-control @error('title') is-invalid @enderror"
+                                        value="{{ old('title', $blog->title) }}"
+                                        required
+                                    >
+
+
+                                    @error('title')
+
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Description --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="description"
+                                        class="form-label"
+                                    >
+                                        Description
+                                    </label>
+
+
+                                    <textarea
+                                        name="description"
+                                        id="description"
+                                        rows="6"
+                                        class="form-control @error('description') is-invalid @enderror"
+                                        required
+                                    >{{ old('description', $blog->description) }}</textarea>
+
+
+                                    @error('description')
+
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Details --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="details"
+                                        class="form-label"
+                                    >
+                                        Details
+                                    </label>
+
+
+                                    <textarea
+                                        name="details"
+                                        id="details"
+                                        rows="6"
+                                        class="form-control @error('details') is-invalid @enderror"
+                                        required
+                                    >{{ old('details', $blog->details) }}</textarea>
+
+
+                                    @error('details')
+
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Current Image --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mb-4">
+
+                                    <label class="form-label">
+                                        Current Image
+                                    </label>
+
+
+                                    @if($blog->image)
+
+                                        <div class="mt-2">
+
+                                            <img
+                                                src="{{ asset('uploads/blogs/' . $blog->image) }}"
+                                                alt="{{ $blog->title }}"
+                                                width="200"
+                                                height="150"
+                                                class="img-thumbnail"
+                                                style="object-fit: cover;"
+                                            >
+
+                                        </div>
+
+                                    @else
+
+                                        <div class="alert alert-secondary">
+
+                                            No image uploaded.
+
+                                        </div>
+
+                                    @endif
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Change Image --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mb-4">
+
+                                    <label
+                                        for="image"
+                                        class="form-label"
+                                    >
+                                        Change Image
+                                    </label>
+
+
+                                    <input
+                                        type="file"
+                                        name="image"
+                                        id="image"
+                                        class="form-control @error('image') is-invalid @enderror"
+                                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                                    >
+
+
+                                    <small class="text-muted">
+
+                                        Leave empty if you do not want
+                                        to change the current image.
+
+                                    </small>
+
+
+                                    @error('image')
+
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Status --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mb-4">
+
+                                    <label class="form-label">
+                                        Status
+                                    </label>
+
+
+                                    <div>
+
+
+                                        {{-- Active --}}
+
+                                        <div class="form-check form-check-inline">
+
+                                            <input
+                                                type="radio"
+                                                name="status"
+                                                id="status_active"
+                                                value="1"
+                                                class="form-check-input"
+                                                {{ old('status', $blog->status) == 1 ? 'checked' : '' }}
+                                            >
+
+
+                                            <label
+                                                for="status_active"
+                                                class="form-check-label"
+                                            >
+                                                Active
+                                            </label>
+
+                                        </div>
+
+
+
+                                        {{-- Inactive --}}
+
+                                        <div class="form-check form-check-inline">
+
+                                            <input
+                                                type="radio"
+                                                name="status"
+                                                id="status_inactive"
+                                                value="0"
+                                                class="form-check-input"
+                                                {{ old('status', $blog->status) == 0 ? 'checked' : '' }}
+                                            >
+
+
+                                            <label
+                                                for="status_inactive"
+                                                class="form-check-label"
+                                            >
+                                                Inactive
+                                            </label>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    @error('status')
+
+                                        <div class="text-danger mt-1">
+                                            {{ $message }}
+                                        </div>
+
+                                    @enderror
+
+                                </div>
+
+
+
+                                {{-- ================================================== --}}
+                                {{-- Buttons --}}
+                                {{-- ================================================== --}}
+
+                                <div class="mt-4">
+
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary"
+                                    >
+
+                                        <i class="bx bx-save me-1"></i>
+
+                                        Update Blog
+
+                                    </button>
+
+
+                                    <a
+                                        href="{{ route('admin.blogs.index') }}"
+                                        class="btn btn-secondary"
+                                    >
+
+                                        Cancel
+
+                                    </a>
+
+                                </div>
+
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                @include('admin.footer')
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @include('admin.js')
+
+</body>
+
 </html>
