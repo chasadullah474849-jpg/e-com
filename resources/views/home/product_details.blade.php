@@ -575,39 +575,7 @@
             transform: none;
         }
 
-        .wishlist-button {
-            height: 59px;
 
-            border: 1px solid #222222;
-
-            border-radius: 11px;
-
-            background: #ffffff;
-
-            color: #222222;
-
-            font-size: 16px;
-
-            font-weight: 500;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            gap: 10px;
-
-            cursor: pointer;
-
-            transition: 0.3s;
-        }
-
-        .wishlist-button:hover {
-            background: #111111;
-
-            color: #ffffff;
-        }
 
         .disabled-cart {
             width: 100%;
@@ -1308,17 +1276,9 @@
                         </button>
 
 
-                        {{-- WISHLIST --}}
 
-                        <button
-                            type="button"
-                            class="wishlist-button">
 
-                            <i class="bi bi-heart"></i>
 
-                            Add to Wishlist
-
-                        </button>
 
                     </div>
 

@@ -5,137 +5,407 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
-
+use App\Models\Order;
+use App\Models\OrderItem;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Session;
 
 class CheckoutController extends Controller
 {
     /**
-     * Display checkout page
+     * =========================================================
+     * SHOW CHECKOUT PAGE
+     * =========================================================
      */
     public function index()
     {
         $cart = session()->get('cart', []);
 
         if (empty($cart)) {
-            return redirect('/')->with('error', 'Your cart is empty.');
+            return redirect('/')
+                ->with('error', 'Your cart is empty.');
         }
 
         $cartItems = [];
         $subtotal = 0;
 
-        foreach ($cart as $item) {
-            $price = (float) ($item['price'] ?? 0);
-            $quantity = (int) ($item['quantity'] ?? 1);
+        foreach ($cart as $key => $item) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Make sure cart item is an array
+            |--------------------------------------------------------------------------
+            */
+            if (!is_array($item)) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Find product
+            |--------------------------------------------------------------------------
+            | Your cart normally uses product UUID as the array key.
+            |--------------------------------------------------------------------------
+            */
+
+            $productUuid = $item['uuid']
+                ?? $key
+                ?? null;
+
+            $product = null;
+
+            if ($productUuid) {
+                $product = Product::with('images')
+                    ->where('uuid', $productUuid)
+                    ->first();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Fallback: product ID
+            |--------------------------------------------------------------------------
+            */
+
+            if (!$product && !empty($item['product_id'])) {
+                $product = Product::with('images')
+                    ->find($item['product_id']);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Skip invalid/deleted products
+            |--------------------------------------------------------------------------
+            */
+
+            if (!$product) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Product image
+            |--------------------------------------------------------------------------
+            */
+
+            $firstImage = $product->images->first();
+
+            $image = $firstImage
+                ? $firstImage->image
+                : ($item['image'] ?? null);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Quantity
+            |--------------------------------------------------------------------------
+            */
+
+            $quantity = max(
+                1,
+                (int) ($item['quantity'] ?? 1)
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Current database price
+            |--------------------------------------------------------------------------
+            */
+
+            $price = (float) $product->price;
+
             $itemTotal = $price * $quantity;
-            $item['item_total'] = $itemTotal;
-            $cartItems[] = $item;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Checkout item
+            |--------------------------------------------------------------------------
+            */
+
+            $cartItems[] = [
+                'id'          => $product->id,
+                'product_id'  => $product->id,
+                'uuid'        => $product->uuid,
+                'name'        => $product->name,
+                'price'       => $price,
+                'quantity'    => $quantity,
+                'image'       => $image,
+                'item_total'  => $itemTotal,
+            ];
+
             $subtotal += $itemTotal;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | If cart contained invalid products
+        |--------------------------------------------------------------------------
+        */
+
+        if (empty($cartItems)) {
+            session()->forget('cart');
+
+            return redirect('/')
+                ->with('error', 'Your cart contains unavailable products.');
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Shipping
+        |--------------------------------------------------------------------------
+        */
+
         $shipping = 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total
+        |--------------------------------------------------------------------------
+        */
+
         $total = $subtotal + $shipping;
 
-        return view('checkout', [
-            'cartItems' => $cartItems,
-            'subtotal'  => $subtotal,
-            'shipping'  => $shipping,
-            'total'     => $total,
-        ]);
+        return view('checkout', compact(
+            'cartItems',
+            'subtotal',
+            'shipping',
+            'total'
+        ));
     }
 
+
+    /**
+     * =========================================================
+     * CHECKOUT LOGIN
+     * =========================================================
+     */
     public function login()
     {
         return redirect()->route('checkout');
     }
 
-    public function placeOrder(Request $request)
-    {
-        $request->validate([
-            'first_name'     => 'required|string|max:255',
-            'last_name'      => 'required|string|max:255',
-            'email'          => 'required|email|max:255',
-            'phone'          => 'required|string|max:20',
-            'address'        => 'required|string|max:500',
-            'city'           => 'required|string|max:100',
-            'country'        => 'required|string|max:100',
-            'zip'            => 'required|string|max:20',
-            'payment_method' => 'required|string',
-        ]);
 
-        session()->forget('cart');
-
-        return redirect()->route('order.success')->with('success', 'Your order has been placed successfully.');
-    }
-
-    // Renders the order success page
-    public function orderSuccess()
-    {
-        return view('order-success');
-    }
     /**
-     * Process Checkout
+     * =========================================================
+     * PROCESS / PLACE ORDER
+     * =========================================================
+     *
+     * IMPORTANT:
+     * This is now the ONLY method responsible for placing
+     * an order.
      */
     public function process(Request $request)
     {
         /*
         |--------------------------------------------------------------------------
-        | Validate Customer Information
+        | Validate checkout form
         |--------------------------------------------------------------------------
         */
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => [
+                'required',
+                'string',
+                'max:100',
+            ],
 
-            'email' => 'required|email|max:255',
+            'last_name' => [
+                'required',
+                'string',
+                'max:100',
+            ],
 
-            'phone' => 'required|string|max:30',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+            ],
 
-            'address' => 'required|string|max:500',
+            'phone' => [
+                'required',
+                'string',
+                'max:30',
+            ],
 
-            'city' => 'required|string|max:100',
+            'address' => [
+                'required',
+                'string',
+                'max:500',
+            ],
 
-            'postal_code' => 'nullable|string|max:20',
+            'address2' => [
+                'nullable',
+                'string',
+                'max:500',
+            ],
 
-            'payment_method' => 'required|in:cash_on_delivery',
+            'country' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+
+            'city' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+
+            'zip' => [
+                'required',
+                'string',
+                'max:20',
+            ],
+
+            'payment_method' => [
+                'required',
+                'in:cash_on_delivery',
+            ],
         ]);
 
 
         /*
         |--------------------------------------------------------------------------
-        | Get Cart
+        | Get cart
         |--------------------------------------------------------------------------
         */
 
         $cart = session()->get('cart', []);
 
-
         if (empty($cart)) {
-
             return redirect('/')
-
-                ->with(
-                    'error',
-                    'Your cart is empty.'
-                );
+                ->with('error', 'Your cart is empty.');
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Calculate Subtotal
+        | Prepare cart products from DATABASE
+        |--------------------------------------------------------------------------
+        | Do not trust price/name from session.
         |--------------------------------------------------------------------------
         */
+
+        $orderItems = [];
 
         $subtotal = 0;
 
 
-        foreach ($cart as $item) {
+        foreach ($cart as $key => $item) {
 
-            $price = (float) ($item['price'] ?? 0);
+            if (!is_array($item)) {
+                continue;
+            }
 
-            $quantity = (int) ($item['quantity'] ?? 1);
+            /*
+            |--------------------------------------------------------------------------
+            | Product UUID
+            |--------------------------------------------------------------------------
+            */
 
-            $subtotal += $price * $quantity;
+            $uuid = $item['uuid'] ?? $key;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Find actual product
+            |--------------------------------------------------------------------------
+            */
+
+            $product = Product::with('images')
+                ->where('uuid', $uuid)
+                ->first();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Fallback by ID
+            |--------------------------------------------------------------------------
+            */
+
+            if (!$product && !empty($item['product_id'])) {
+                $product = Product::with('images')
+                    ->find($item['product_id']);
+            }
+
+            if (!$product) {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'One of the products in your cart no longer exists.'
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Quantity
+            |--------------------------------------------------------------------------
+            */
+
+            $quantity = max(
+                1,
+                (int) ($item['quantity'] ?? 1)
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | IMPORTANT STOCK CHECK
+            |--------------------------------------------------------------------------
+            |
+            | Your current CartController deducts stock when adding to cart.
+            | Therefore DO NOT deduct stock again here.
+            |
+            */
+
+            $price = (float) $product->price;
+
+            $itemTotal = $price * $quantity;
+
+            $subtotal += $itemTotal;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Product image
+            |--------------------------------------------------------------------------
+            */
+
+            $firstImage = $product->images->first();
+
+            $image = $firstImage
+                ? $firstImage->image
+                : null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prepare order item
+            |--------------------------------------------------------------------------
+            */
+
+            $orderItems[] = [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'price' => $price,
+                'quantity' => $quantity,
+                'total' => $itemTotal,
+                'image' => $image,
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Make sure we actually have products
+        |--------------------------------------------------------------------------
+        */
+
+        if (empty($orderItems)) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'No valid products were found in your cart.'
+                );
         }
 
 
@@ -147,105 +417,136 @@ class CheckoutController extends Controller
 
         $shipping = 0;
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Total
-        |--------------------------------------------------------------------------
-        */
-
         $total = $subtotal + $shipping;
 
 
         /*
         |--------------------------------------------------------------------------
-        | Database Transaction
+        | Customer full name
         |--------------------------------------------------------------------------
         */
 
-        DB::beginTransaction();
+        $customerName = trim(
+            $validated['first_name'] .
+            ' ' .
+            $validated['last_name']
+        );
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Combine address information
+        |--------------------------------------------------------------------------
+        |
+        | This avoids requiring extra database columns for address2/country
+        | if your existing orders table only has address/city/postal_code.
+        |--------------------------------------------------------------------------
+        */
+
+        $fullAddress = $validated['address'];
+
+        if (!empty($validated['address2'])) {
+            $fullAddress .= ', ' . $validated['address2'];
+        }
+
+        if (!empty($validated['country'])) {
+            $fullAddress .= ', ' . $validated['country'];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DATABASE TRANSACTION
+        |--------------------------------------------------------------------------
+        */
 
         try {
 
-            /*
-            |--------------------------------------------------------------------------
-            | Create Order
-            |--------------------------------------------------------------------------
-            */
+            $orderId = DB::transaction(function () use (
+                $validated,
+                $customerName,
+                $fullAddress,
+                $orderItems,
+                $subtotal,
+                $shipping,
+                $total
+            ) {
 
-            $orderId = DB::table('orders')->insertGetId([
+                /*
+                |--------------------------------------------------------------------------
+                | CREATE ORDER
+                |--------------------------------------------------------------------------
+                */
 
-                'name' => $validated['name'],
+                $orderId = DB::table('orders')->insertGetId([
 
-                'email' => $validated['email'],
+                    'name' => $customerName,
 
-                'phone' => $validated['phone'],
+                    'email' => $validated['email'],
 
-                'address' => $validated['address'],
+                    'phone' => $validated['phone'],
 
-                'city' => $validated['city'],
+                    'address' => $fullAddress,
 
-                'postal_code' => $validated['postal_code'] ?? null,
+                    'city' => $validated['city'],
 
-                'payment_method' => $validated['payment_method'],
+                    'postal_code' => $validated['zip'],
 
-                'subtotal' => $subtotal,
+                    'payment_method' =>
+                        $validated['payment_method'],
 
-                'shipping' => $shipping,
+                    'subtotal' => $subtotal,
 
-                'total' => $total,
+                    'shipping' => $shipping,
 
-                'status' => 'pending',
+                    'total' => $total,
 
-                'created_at' => now(),
-
-                'updated_at' => now(),
-            ]);
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Save Order Items
-            |--------------------------------------------------------------------------
-            */
-
-            foreach ($cart as $item) {
-
-                DB::table('order_items')->insert([
-
-                    'order_id' => $orderId,
-
-                    'product_id' =>
-                        $item['product_id']
-                        ?? $item['id']
-                        ?? null,
-
-                    'product_name' =>
-                        $item['name']
-                        ?? 'Product',
-
-                    'price' =>
-                        (float) ($item['price'] ?? 0),
-
-                    'quantity' =>
-                        (int) ($item['quantity'] ?? 1),
-
-                    'total' =>
-                        (float) ($item['price'] ?? 0)
-                        *
-                        (int) ($item['quantity'] ?? 1),
+                    'status' => 'pending',
 
                     'created_at' => now(),
 
                     'updated_at' => now(),
                 ]);
-            }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | CREATE ORDER ITEMS
+                |--------------------------------------------------------------------------
+                */
+
+                foreach ($orderItems as $item) {
+
+                    DB::table('order_items')->insert([
+
+                        'order_id' => $orderId,
+
+                        'product_id' => $item['product_id'],
+
+                        'product_name' => $item['product_name'],
+
+                        'price' => $item['price'],
+
+                        'quantity' => $item['quantity'],
+
+                        'total' => $item['total'],
+
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
+                    ]);
+                }
+
+
+                return $orderId;
+            });
 
 
             /*
             |--------------------------------------------------------------------------
-            | Clear Cart
+            | IMPORTANT
+            |--------------------------------------------------------------------------
+            | Only clear cart AFTER database transaction succeeds.
             |--------------------------------------------------------------------------
             */
 
@@ -254,11 +555,14 @@ class CheckoutController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Commit
+            | Save order ID for success page
             |--------------------------------------------------------------------------
             */
 
-            DB::commit();
+            session()->flash(
+                'order_id',
+                $orderId
+            );
 
 
             /*
@@ -267,143 +571,150 @@ class CheckoutController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            return redirect('/')
-
+            return redirect()
+                ->route('order.success')
                 ->with(
                     'success',
-                    'Order placed successfully! Order ID: #' . $orderId
+                    'Order placed successfully!'
                 );
         }
 
 
-        catch (\Exception $e) {
+        /*
+        |--------------------------------------------------------------------------
+        | Database error
+        |--------------------------------------------------------------------------
+        */
 
-            /*
-            |--------------------------------------------------------------------------
-            | Rollback
-            |--------------------------------------------------------------------------
-            */
+        catch (\Throwable $e) {
 
-            DB::rollBack();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Return Error
-            |--------------------------------------------------------------------------
-            */
+            report($e);
 
             return back()
-
                 ->withInput()
-
                 ->with(
                     'error',
-                    'Something went wrong while placing your order: '
-                    . $e->getMessage()
+                    'Unable to place order. ' .
+                    ($e->getMessage())
                 );
         }
     }
-    public function updateQuantity(Request $request)
-    {
-        $itemId = $request->input('item_id');
-        $newQty = max(1, (int) $request->input('quantity'));
 
-        // Retrieve cart from session (or your custom Cart DB/Session structure)
-        $cart = session()->get('cart', []);
-
-        if (isset($cart[$itemId])) {
-            $cart[$itemId]['quantity'] = $newQty;
-            session()->put('cart', $cart);
-        }
-
-        // Calculate item total & grand totals
-        $itemTotal = 0;
-        $subtotal = 0;
-
-        foreach ($cart as $id => $details) {
-            $linePrice = $details['price'] * $details['quantity'];
-            $subtotal += $linePrice;
-            if ($id == $itemId) {
-                $itemTotal = $linePrice;
-            }
-        }
-
-        $shipping = 0; // Set your shipping logic here
-        $total = $subtotal + $shipping;
-
-        return response()->json([
-            'success' => true,
-            'item_total' => number_format($itemTotal, 2),
-            'subtotal' => number_format($subtotal, 2),
-            'total' => number_format($total, 2),
-            'cart_count' => count($cart),
-        ]);
-    }
-    public function removeFromCart(Request $request, $id)
-    {
-        $cart = session()->get('cart', []);
-
-        $removed = false;
-
-        // 1. Direct array key lookup
-        if (isset($cart[$id])) {
-            unset($cart[$id]);
-            $removed = true;
-        } else {
-            // 2. Fallback search inside array items for matching product 'id'
-            foreach ($cart as $key => $item) {
-                $itemId = is_object($item) ? ($item->id ?? null) : ($item['id'] ?? null);
-                if ((string)$key === (string)$id || (string)$itemId === (string)$id) {
-                    unset($cart[$key]);
-                    $removed = true;
-                    break;
-                }
-            }
-        }
-
-        if ($removed) {
-            session()->put('cart', $cart);
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'Product removed successfully.']);
-            }
-
-            return redirect()->back()->with('success', 'Product removed successfully.');
-        }
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => false, 'message' => 'Product not found in cart.'], 404);
-        }
-
-        return redirect()->back()->with('error', 'Product not found in cart.');
-    }
-    public function store(Request $request)
-    {
-        $cart = session()->get('cart', []);
-
-        if (empty($cart)) {
-            return redirect()->back()->with('error', 'Your cart is empty.');
-        }
-
-        // Validate checkout inputs
-        $validated = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:500',
-        ]);
-
-        // Process order logic here (e.g., Save to database)
-
-        // Clear cart session after successful order
-        session()->forget('cart');
-
-        return redirect()->route('order.success')->with('success', 'Order placed successfully!');
-    }
 
     /**
-     * Display order success page.
+     * =========================================================
+     * ORDER SUCCESS
+     * =========================================================
      */
+    public function orderSuccess()
+    {
+        $orderId = session('order_id');
 
+        return view(
+            'order-success',
+            compact('orderId')
+        );
+    }
+
+
+    /**
+     * =========================================================
+     * UPDATE CART QUANTITY
+     * =========================================================
+     */
+    public function updateQuantity(Request $request)
+    {
+        $request->validate([
+            'item_id' => 'required',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $itemId = $request->input('item_id');
+
+        $newQty = max(
+            1,
+            (int) $request->input('quantity')
+        );
+
+        $cart = session()->get('cart', []);
+
+        if (!isset($cart[$itemId])) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found in cart.',
+            ], 404);
+        }
+
+        $cart[$itemId]['quantity'] = $newQty;
+
+        session()->put(
+            'cart',
+            $cart
+        );
+
+
+        $itemTotal = 0;
+
+        $subtotal = 0;
+
+
+        foreach ($cart as $id => $details) {
+
+            $price = (float) (
+                $details['price'] ?? 0
+            );
+
+            $quantity = (int) (
+                $details['quantity'] ?? 1
+            );
+
+            $lineTotal =
+                $price * $quantity;
+
+            $subtotal += $lineTotal;
+
+            if ((string) $id === (string) $itemId) {
+                $itemTotal = $lineTotal;
+            }
+        }
+
+
+        $shipping = 0;
+
+        $total =
+            $subtotal +
+            $shipping;
+
+
+        return response()->json([
+
+            'success' => true,
+
+            'message' =>
+                'Cart updated successfully.',
+
+            'item_total' =>
+                number_format(
+                    $itemTotal,
+                    2
+                ),
+
+            'subtotal' =>
+                number_format(
+                    $subtotal,
+                    2
+                ),
+
+            'total' =>
+                number_format(
+                    $total,
+                    2
+                ),
+
+            'cart_count' =>
+                collect($cart)
+                    ->sum('quantity'),
+        ]);
+    }
 }

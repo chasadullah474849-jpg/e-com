@@ -1,475 +1,950 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Checkout | Complete Your Order</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="csrf-token"
+          content="{{ csrf_token() }}">
+
+    <title>Checkout | Kaira</title>
+
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
+
     <style>
-        .form-check-input:checked {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+
+        body {
+            background: #f7f8fa;
+            color: #222;
+            font-family: Arial, sans-serif;
         }
-        .order-summary-card {
+
+        .checkout-wrapper {
+            max-width: 1050px;
+            margin: 40px auto;
+            padding: 0 15px;
+        }
+
+        .checkout-title {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .checkout-title h1 {
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .checkout-title p {
+            color: #777;
+            margin-bottom: 0;
+        }
+
+        .checkout-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, .06);
+            margin-bottom: 18px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: #0d6efd;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .form-control,
+        .form-select {
+            min-height: 40px;
+            border-radius: 7px;
+            border: 1px solid #dce0e5;
+            font-size: 13px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 .15rem rgba(13, 110, 253, .10);
+        }
+
+
+        /* =====================================================
+           ORDER SUMMARY
+        ===================================================== */
+
+        .summary-card {
             position: sticky;
             top: 20px;
         }
 
-        /* Fixed Avatar Container to prevent broken image alt text bleed */
-        .product-avatar-box {
-            width: 50px;
-            height: 50px;
-            min-width: 50px;
-            min-height: 50px;
-            border-radius: 50%;
-            overflow: hidden;
-            background-color: #e9ecef;
-            border: 1px solid #dee2e6;
+        .summary-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            position: relative;
+            margin-bottom: 20px;
         }
 
-        .product-avatar-box img {
+        .summary-header h4 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .summary-count {
+            background: #0d6efd;
+            color: #fff;
+            width: 27px;
+            height: 27px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        /* =====================================================
+           PRODUCT ROW
+        ===================================================== */
+
+        .order-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .product-image-wrapper {
+            width: 46px;
+            height: 46px;
+            min-width: 46px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #eef1f4;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .product-image-wrapper img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
-            border-radius: 50%;
         }
 
-        /* Quantity controls styling */
-        .qty-btn {
-            width: 24px;
-            height: 24px;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+        .product-placeholder {
+            font-size: 22px;
+            color: #8a929a;
+        }
+
+        .order-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-name {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-quantity {
+            color: #777;
             font-size: 12px;
-            border-radius: 50%;
+            margin-top: 3px;
         }
 
-        .qty-input {
-            width: 38px;
-            text-align: center;
-            border: none;
-            background: transparent;
+        .product-price {
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+
+        /* =====================================================
+           TOTAL
+        ===================================================== */
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+
+        .total-row.shipping span:last-child {
+            color: #198754;
             font-weight: 600;
         }
-    </style>
-</head>
-<body class="bg-light">
 
-    <div class="container py-5">
-        <!-- Header -->
-        <div class="text-center mb-5">
-            <h1 class="fw-bold">Checkout</h1>
-            <p class="text-muted">Please review your items and complete your shipping details.</p>
+        .grand-total {
+            border-top: 1px solid #ddd;
+            margin-top: 8px;
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .grand-total span:last-child {
+            color: #0d6efd;
+        }
+
+
+        /* =====================================================
+           PAYMENT
+        ===================================================== */
+
+        .payment-box {
+            background: #dff6ff;
+            border-radius: 7px;
+            padding: 14px;
+            border: 1px solid #b8e8f8;
+        }
+
+        .payment-box label {
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .payment-title {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .payment-description {
+            color: #666;
+            font-size: 11px;
+        }
+
+
+        /* =====================================================
+           PLACE ORDER
+        ===================================================== */
+
+        .place-order-btn {
+            width: 100%;
+            border: 0;
+            background: #0d6efd;
+            color: white;
+            padding: 13px;
+            border-radius: 7px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 15px;
+            transition: .2s;
+        }
+
+        .place-order-btn:hover {
+            background: #0b5ed7;
+        }
+
+        .place-order-btn:disabled {
+            opacity: .7;
+            cursor: not-allowed;
+        }
+
+
+        /* =====================================================
+           ALERTS
+        ===================================================== */
+
+        .alert {
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        @media(max-width: 991px) {
+
+            .summary-card {
+                position: static;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="checkout-wrapper">
+
+
+    {{-- =====================================================
+         TITLE
+    ====================================================== --}}
+
+    <div class="checkout-title">
+
+        <h1>Checkout</h1>
+
+        <p>
+            Please review your items and complete your shipping details.
+        </p>
+
+    </div>
+
+
+    {{-- =====================================================
+         SUCCESS MESSAGE
+    ====================================================== --}}
+
+    @if(session('success'))
+
+        <div class="alert alert-success">
+            {{ session('success') }}
         </div>
 
-        <form action="{{ Route::has('checkout.store') ? route('checkout.store') : url('/place-order') }}" method="POST">
-            @csrf
-            <div class="row g-4">
+    @endif
 
-                <!-- Left Column: Billing Details & Payment -->
-                <div class="col-lg-7 col-xl-8">
 
-                    <!-- Billing Address Card -->
-                    <div class="card border-0 shadow-sm mb-4 rounded-4">
-                        <div class="card-body p-4">
-                            <h4 class="card-title fw-bold mb-4">
-                                <i class="fa-solid fa-location-dot me-2 text-primary"></i> Billing & Shipping Address
-                            </h4>
+    {{-- =====================================================
+         ERROR MESSAGE
+    ====================================================== --}}
 
-                            <div class="row g-3">
-                                <div class="col-sm-6">
-                                    <label for="firstName" class="form-label">First Name</label>
-                                    <input type="text" class="form-control" id="firstName" name="first_name" value="{{ old('first_name') }}" required>
-                                </div>
+    @if(session('error'))
 
-                                <div class="col-sm-6">
-                                    <label for="lastName" class="form-label">Last Name</label>
-                                    <input type="text" class="form-control" id="lastName" name="last_name" value="{{ old('last_name') }}" required>
-                                </div>
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
 
-                                <div class="col-12">
-                                    <label for="email" class="form-label">Email Address</label>
-                                    <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" value="{{ old('email') }}" required>
-                                </div>
+    @endif
 
-                                <div class="col-12">
-                                    <label for="phone" class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="+1234567890" value="{{ old('phone') }}" required>
-                                </div>
 
-                                <div class="col-12">
-                                    <label for="address" class="form-label">Street Address</label>
-                                    <input type="text" class="form-control" id="address" name="address" placeholder="1234 Main St" value="{{ old('address') }}" required>
-                                </div>
+    {{-- =====================================================
+         VALIDATION ERRORS
+    ====================================================== --}}
 
-                                <div class="col-12">
-                                    <label for="address2" class="form-label">Address 2 <span class="text-muted">(Optional)</span></label>
-                                    <input type="text" class="form-control" id="address2" name="address_2" placeholder="Apartment, suite, or unit" value="{{ old('address_2') }}">
-                                </div>
+    @if($errors->any())
 
-                                <div class="col-md-5">
-                                    <label for="country" class="form-label">Country</label>
-                                    <select class="form-select" id="country" name="country" required>
-                                        <option value="">Choose...</option>
-                                        <option value="Pakistan" {{ old('country') == 'Pakistan' ? 'selected' : '' }}>Pakistan</option>
-                                        <option value="United States" {{ old('country') == 'United States' ? 'selected' : '' }}>United States</option>
-                                        <option value="United Kingdom" {{ old('country') == 'United Kingdom' ? 'selected' : '' }}>United Kingdom</option>
-                                        <option value="Canada" {{ old('country') == 'Canada' ? 'selected' : '' }}>Canada</option>
-                                    </select>
-                                </div>
+        <div class="alert alert-danger">
 
-                                <div class="col-md-4">
-                                    <label for="city" class="form-label">City</label>
-                                    <input type="text" class="form-control" id="city" name="city" value="{{ old('city') }}" required>
-                                </div>
+            <strong>Please fix these errors:</strong>
 
-                                <div class="col-md-3">
-                                    <label for="zip" class="form-label">Zip / Postal Code</label>
-                                    <input type="text" class="form-control" id="zip" name="zip" value="{{ old('zip') }}" required>
-                                </div>
-                            </div>
+            <ul class="mb-0 mt-2">
 
-                            <hr class="my-4">
+                @foreach($errors->all() as $error)
 
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="same-address" name="same_address" value="1" checked>
-                                <label class="form-check-label" for="same-address">Shipping address is the same as my billing address</label>
-                            </div>
+                    <li>{{ $error }}</li>
 
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="save-info" name="save_info" value="1">
-                                <label class="form-check-label" for="save-info">Save this information for next time</label>
-                            </div>
-                        </div>
+                @endforeach
+
+            </ul>
+
+        </div>
+
+    @endif
+
+
+    <form
+        id="checkoutForm"
+        method="POST"
+        action="{{ route('checkout.submit') }}"
+    >
+
+        @csrf
+
+
+        <div class="row g-3">
+
+
+            {{-- =================================================
+                 LEFT SIDE
+            ================================================== --}}
+
+            <div class="col-lg-8">
+
+
+                {{-- =================================================
+                     BILLING / SHIPPING
+                ================================================== --}}
+
+                <div class="checkout-card">
+
+                    <div class="section-title">
+
+                        <i class="bi bi-geo-alt-fill"></i>
+
+                        Billing & Shipping Address
+
                     </div>
 
-                    <!-- Payment Options Card -->
-                    <div class="card border-0 shadow-sm mb-4 rounded-4">
-                        <div class="card-body p-4">
-                            <h4 class="card-title fw-bold mb-4">
-                                <i class="fa-solid fa-credit-card me-2 text-primary"></i> Payment Method
-                            </h4>
 
-                            <div class="my-3">
-                                <div class="form-check mb-3">
-                                    <input id="credit" name="payment_method" type="radio" class="form-check-input payment-method-radio" value="credit_card" checked required>
-                                    <label class="form-check-label fw-semibold" for="credit">Credit / Debit Card</label>
+                    <div class="row g-3">
+
+
+                        {{-- FIRST NAME --}}
+
+                        <div class="col-md-6">
+
+                            <label for="first_name">
+                                First Name
+                            </label>
+
+                            <input
+                                type="text"
+                                id="first_name"
+                                name="first_name"
+                                class="form-control @error('first_name') is-invalid @enderror"
+                                value="{{ old('first_name') }}"
+                                required
+                            >
+
+                            @error('first_name')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
                                 </div>
-                                <div class="form-check mb-3">
-                                    <input id="cod" name="payment_method" type="radio" class="form-check-input payment-method-radio" value="cod" required>
-                                    <label class="form-check-label fw-semibold" for="cod">Cash on Delivery (COD)</label>
-                                </div>
-                                <div class="form-check mb-3">
-                                    <input id="paypal" name="payment_method" type="radio" class="form-check-input payment-method-radio" value="paypal" required>
-                                    <label class="form-check-label fw-semibold" for="paypal">PayPal</label>
-                                </div>
-                            </div>
-
-                            <!-- Dynamic Payment Content Container -->
-                            <div class="mt-4 pt-3 border-top">
-
-                                <!-- Credit Card Input Fields -->
-                                <div id="credit-card-details" class="payment-details-box">
-                                    <div class="row g-3">
-                                        <div class="col-12">
-                                            <label for="cc-name" class="form-label">Name on Card</label>
-                                            <input type="text" class="form-control" id="cc-name" name="cc_name" placeholder="Full name as displayed on card">
-                                        </div>
-
-                                        <div class="col-12">
-                                            <label for="cc-number" class="form-label">Credit / Debit Card Number</label>
-                                            <input type="text" class="form-control" id="cc-number" name="cc_number" placeholder="xxxx xxxx xxxx xxxx" maxlength="19">
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label for="cc-expiration" class="form-label">Expiration (MM/YY)</label>
-                                            <input type="text" class="form-control" id="cc-expiration" name="cc_expiration" placeholder="MM/YY" maxlength="5">
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label for="cc-cvv" class="form-label">CVV / CVC</label>
-                                            <input type="password" class="form-control" id="cc-cvv" name="cc_cvv" placeholder="123" maxlength="4">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Cash on Delivery Info Box -->
-                                <div id="cod-details" class="payment-details-box d-none">
-                                    <div class="alert alert-info border-0 rounded-3 mb-0">
-                                        <i class="fa-solid fa-truck-fast me-2"></i>
-                                        Pay with cash upon delivery of your items. No advance payment required.
-                                    </div>
-                                </div>
-
-                                <!-- PayPal Info Box -->
-                                <div id="paypal-details" class="payment-details-box d-none">
-                                    <div class="alert alert-warning border-0 rounded-3 mb-0">
-                                        <i class="fa-brands fa-paypal me-2"></i>
-                                        You will be redirected to PayPal to complete your purchase securely after placing the order.
-                                    </div>
-                                </div>
-
-                            </div>
+                            @enderror
 
                         </div>
+
+
+                        {{-- LAST NAME --}}
+
+                        <div class="col-md-6">
+
+                            <label for="last_name">
+                                Last Name
+                            </label>
+
+                            <input
+                                type="text"
+                                id="last_name"
+                                name="last_name"
+                                class="form-control @error('last_name') is-invalid @enderror"
+                                value="{{ old('last_name') }}"
+                                required
+                            >
+
+                            @error('last_name')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- EMAIL --}}
+
+                        <div class="col-12">
+
+                            <label for="email">
+                                Email Address
+                            </label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-control @error('email') is-invalid @enderror"
+                                value="{{ old('email') }}"
+                                required
+                            >
+
+                            @error('email')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- PHONE --}}
+
+                        <div class="col-12">
+
+                            <label for="phone">
+                                Phone Number
+                            </label>
+
+                            <input
+                                type="text"
+                                id="phone"
+                                name="phone"
+                                class="form-control @error('phone') is-invalid @enderror"
+                                value="{{ old('phone') }}"
+                                placeholder="+92XXXXXXXXXX"
+                                required
+                            >
+
+                            @error('phone')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- ADDRESS --}}
+
+                        <div class="col-12">
+
+                            <label for="address">
+                                Street Address
+                            </label>
+
+                            <input
+                                type="text"
+                                id="address"
+                                name="address"
+                                class="form-control @error('address') is-invalid @enderror"
+                                value="{{ old('address') }}"
+                                required
+                            >
+
+                            @error('address')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- ADDRESS 2 --}}
+
+                        <div class="col-12">
+
+                            <label for="address2">
+                                Address 2 (Optional)
+                            </label>
+
+                            <input
+                                type="text"
+                                id="address2"
+                                name="address2"
+                                class="form-control"
+                                value="{{ old('address2') }}"
+                                placeholder="Apartment, suite, or unit"
+                            >
+
+                        </div>
+
+
+                        {{-- COUNTRY --}}
+
+                        <div class="col-md-4">
+
+                            <label for="country">
+                                Country
+                            </label>
+
+                            <select
+                                id="country"
+                                name="country"
+                                class="form-select @error('country') is-invalid @enderror"
+                                required
+                            >
+
+                                <option value="Pakistan"
+                                    {{ old('country', 'Pakistan') == 'Pakistan' ? 'selected' : '' }}>
+                                    Pakistan
+                                </option>
+
+                            </select>
+
+                            @error('country')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- CITY --}}
+
+                        <div class="col-md-4">
+
+                            <label for="city">
+                                City
+                            </label>
+
+                            <input
+                                type="text"
+                                id="city"
+                                name="city"
+                                class="form-control @error('city') is-invalid @enderror"
+                                value="{{ old('city') }}"
+                                required
+                            >
+
+                            @error('city')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- ZIP --}}
+
+                        <div class="col-md-4">
+
+                            <label for="zip">
+                                Zip / Postal Code
+                            </label>
+
+                            <input
+                                type="text"
+                                id="zip"
+                                name="zip"
+                                class="form-control @error('zip') is-invalid @enderror"
+                                value="{{ old('zip') }}"
+                                required
+                            >
+
+                            @error('zip')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                        </div>
+
                     </div>
 
                 </div>
 
-                <!-- Right Column: Order Summary -->
-                <div class="col-lg-5 col-xl-4">
-                    <div class="card border-0 shadow-sm order-summary-card rounded-4">
-                        <div class="card-body p-4">
-                            @php
-                                $items = $cartItems ?? $cart ?? [];
-                                $computedSubtotal = 0;
-                            @endphp
 
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="fw-bold mb-0">Order Summary</h4>
-                                <span class="badge bg-primary rounded-pill px-3 py-2 fs-6" id="cart-count">
-                                    {{ is_array($items) || $items instanceof \Countable ? count($items) : 0 }}
-                                </span>
-                            </div>
 
-                            <!-- Product List Loop -->
-                            <div class="order-items-list mb-3">
-                                @forelse($items as $key => $item)
-                                    @php
-                                        $itemId = is_object($item) ? ($item->id ?? $key) : ($item['id'] ?? $key);
-                                        $itemName = is_object($item) ? ($item->name ?? 'Product') : ($item['name'] ?? 'Product');
-                                        $itemQty = is_object($item) ? ($item->quantity ?? 1) : ($item['quantity'] ?? 1);
+                {{-- =================================================
+                     PAYMENT
+                ================================================== --}}
 
-                                        $rawPrice = is_object($item) ? ($item->price ?? 0) : ($item['price'] ?? 0);
-                                        $itemPrice = (float) preg_replace('/[^\d.]/', '', $rawPrice);
-                                        $lineTotal = $itemPrice * $itemQty;
-                                        $computedSubtotal += $lineTotal;
+                <div class="checkout-card">
 
-                                        $rawImg = is_object($item) ? ($item->image ?? $item->image_path ?? null) : ($item['image'] ?? $item['image_path'] ?? null);
+                    <div class="section-title">
 
-                                        // SVG Fallback Icon
-                                        $placeholder = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 24 24' fill='%236c757d'><path d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/></svg>";
+                        <i class="bi bi-credit-card-fill"></i>
 
-                                        if (!empty($rawImg)) {
-                                            if (filter_var($rawImg, FILTER_VALIDATE_URL) || str_starts_with($rawImg, 'http')) {
-                                                $imgSrc = $rawImg;
-                                            } elseif (str_starts_with($rawImg, 'storage/')) {
-                                                $imgSrc = asset($rawImg);
-                                            } elseif (str_starts_with($rawImg, 'images/') || str_starts_with($rawImg, 'uploads/')) {
-                                                $imgSrc = asset($rawImg);
-                                            } else {
-                                                $imgSrc = asset('storage/' . ltrim($rawImg, '/'));
-                                            }
-                                        } else {
-                                            $imgSrc = $placeholder;
-                                        }
-                                    @endphp
+                        Payment Method
 
-                                    <div class="d-flex align-items-center justify-content-between py-2 border-bottom cart-item-row" data-id="{{ $itemId }}" data-unit-price="{{ $itemPrice }}">
-                                        <div class="d-flex align-items-center gap-3">
-
-                                            <!-- Image Wrapper -->
-                                            <div class="product-avatar-box shadow-sm flex-shrink-0">
-                                                <img
-                                                    src="{{ $imgSrc }}"
-                                                    alt=""
-                                                    onerror="this.onerror=null; this.src='{{ $placeholder }}';"
-                                                >
-                                            </div>
-
-                                            <!-- Item Title & Interactive Stock Buttons -->
-                                            <div>
-                                                <h6 class="mb-1 text-dark fw-semibold" style="max-width: 120px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-                                                    {{ $itemName }}
-                                                </h6>
-
-                                                <!-- Dynamic Quantity Controls -->
-                                                <div class="d-flex align-items-center bg-light border rounded-pill px-1 py-1">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary qty-btn btn-minus">-</button>
-                                                    <input type="text" class="qty-input" value="{{ $itemQty }}" readonly>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary qty-btn btn-plus">+</button>
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        <!-- Live Price Display -->
-                                        <div class="text-end fw-bold text-dark">
-                                            $<span class="item-line-total">{{ number_format($lineTotal, 2) }}</span>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <div class="py-3 text-muted text-center">
-                                        No items in cart.
-                                    </div>
-                                @endforelse
-                            </div>
-
-                            @php
-                                $finalSubtotal = $subtotal ?? $computedSubtotal;
-                                $shippingFee = $shipping ?? 0;
-                                $grandTotal = $total ?? ($finalSubtotal + $shippingFee);
-                            @endphp
-
-                            <!-- Live Totals -->
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Subtotal</span>
-                                <span class="fw-semibold">$<span id="summary-subtotal">{{ number_format($finalSubtotal, 2) }}</span></span>
-                            </div>
-
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Shipping Fee</span>
-                                <span class="fw-semibold text-success">
-                                    {{ $shippingFee > 0 ? '$' . number_format($shippingFee, 2) : 'Free' }}
-                                </span>
-                            </div>
-
-                            <hr class="my-3">
-
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <span class="h5 mb-0 fw-bold">Total Amount</span>
-                                <strong class="h4 mb-0 text-primary">$<span id="summary-total">{{ number_format($grandTotal, 2) }}</span></strong>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <button class="w-100 btn btn-primary btn-lg fw-bold py-3" type="submit">
-                                Place Order Now
-                            </button>
-                        </div>
                     </div>
+
+
+                    <div class="payment-box">
+
+                        <label
+                            for="cod"
+                            class="d-flex align-items-start gap-2"
+                        >
+
+                            <input
+                                type="radio"
+                                id="cod"
+                                name="payment_method"
+                                value="cash_on_delivery"
+                                checked
+                            >
+
+                            <div>
+
+                                <div class="payment-title">
+                                    Cash on Delivery (COD)
+                                </div>
+
+                                <div class="payment-description">
+                                    Pay with cash upon delivery of your items.
+                                    No advance payment required.
+                                </div>
+
+                            </div>
+
+                        </label>
+
+                    </div>
+
                 </div>
 
             </div>
-        </form>
-    </div>
 
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Payment Toggling & Quantity AJAX Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-            // --- Payment Option Dynamic Display Logic ---
-            const paymentRadios = document.querySelectorAll('.payment-method-radio');
-            const creditCardBox = document.getElementById('credit-card-details');
-            const codBox = document.getElementById('cod-details');
-            const paypalBox = document.getElementById('paypal-details');
+            {{-- =================================================
+                 RIGHT SIDE
+            ================================================== --}}
 
-            const ccInputs = creditCardBox.querySelectorAll('input');
+            <div class="col-lg-4">
 
-            function togglePaymentFields() {
-                const selectedMethod = document.querySelector('.payment-method-radio:checked')?.value;
 
-                // Hide all boxes initially
-                creditCardBox.classList.add('d-none');
-                codBox.classList.add('d-none');
-                paypalBox.classList.add('d-none');
+                <div class="checkout-card summary-card">
 
-                // Remove required attribute from CC inputs
-                ccInputs.forEach(input => input.removeAttribute('required'));
 
-                if (selectedMethod === 'credit_card') {
-                    creditCardBox.classList.remove('d-none');
-                    ccInputs.forEach(input => input.setAttribute('required', 'required'));
-                } else if (selectedMethod === 'cod') {
-                    codBox.classList.remove('d-none');
-                } else if (selectedMethod === 'paypal') {
-                    paypalBox.classList.remove('d-none');
-                }
-            }
+                    <div class="summary-header">
 
-            paymentRadios.forEach(radio => radio.addEventListener('change', togglePaymentFields));
-            togglePaymentFields(); // Initial run on page load
+                        <h4>
+                            Order Summary
+                        </h4>
 
-            // --- Quantity Updating Logic ---
-            document.querySelectorAll('.cart-item-row').forEach(row => {
-                const itemId = row.getAttribute('data-id');
-                const qtyInput = row.querySelector('.qty-input');
-                const btnPlus = row.querySelector('.btn-plus');
-                const btnMinus = row.querySelector('.btn-minus');
+                        <span class="summary-count">
+                            {{ collect($cartItems)->sum('quantity') }}
+                        </span>
 
-                if (btnPlus && btnMinus) {
-                    btnPlus.addEventListener('click', function () {
-                        let currentQty = parseInt(qtyInput.value) || 1;
-                        updateCartQuantity(itemId, currentQty + 1, row);
-                    });
+                    </div>
 
-                    btnMinus.addEventListener('click', function () {
-                        let currentQty = parseInt(qtyInput.value) || 1;
-                        if (currentQty > 1) {
-                            updateCartQuantity(itemId, currentQty - 1, row);
-                        }
-                    });
-                }
-            });
 
-            function updateCartQuantity(itemId, newQuantity, rowElement) {
-                const updateUrl = "{{ Route::has('cart.update-quantity') ? route('cart.update-quantity') : url('/cart/update-quantity') }}";
+                    {{-- =================================================
+                         PRODUCTS
+                    ================================================== --}}
 
-                fetch(updateUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": csrfToken,
-                        "Accept": "application/json"
-                    },
-                    body: JSON.stringify({
-                        item_id: itemId,
-                        quantity: newQuantity
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        rowElement.querySelector('.qty-input').value = newQuantity;
+                    @foreach($cartItems as $item)
 
-                        const unitPrice = parseFloat(rowElement.getAttribute('data-unit-price')) || 0;
-                        const formattedLineTotal = data.item_total ?? (unitPrice * newQuantity).toFixed(2);
+                        @php
 
-                        rowElement.querySelector('.item-line-total').innerText = Number(formattedLineTotal).toLocaleString('en-US', {minimumFractionDigits: 2});
+                            $image = $item['image'] ?? null;
 
-                        if (data.subtotal) {
-                            document.getElementById('summary-subtotal').innerText = data.subtotal;
-                        }
-                        if (data.total) {
-                            document.getElementById('summary-total').innerText = data.total;
-                        }
-                        if (data.cart_count !== undefined) {
-                            document.getElementById('cart-count').innerText = data.cart_count;
-                        }
+                            if ($image) {
 
-                        recalculateClientTotals();
-                    }
-                })
-                .catch(error => console.error('Error updating cart:', error));
-            }
+                                if (
+                                    \Illuminate\Support\Str::startsWith(
+                                        $image,
+                                        ['http://', 'https://']
+                                    )
+                                ) {
 
-            function recalculateClientTotals() {
-                let grandTotal = 0;
-                document.querySelectorAll('.cart-item-row').forEach(row => {
-                    const unitPrice = parseFloat(row.getAttribute('data-unit-price')) || 0;
-                    const qty = parseInt(row.querySelector('.qty-input').value) || 1;
-                    grandTotal += (unitPrice * qty);
-                });
+                                    $imageUrl = $image;
 
-                const formattedTotal = Number(grandTotal.toFixed(2)).toLocaleString('en-US', {minimumFractionDigits: 2});
-                document.getElementById('summary-subtotal').innerText = formattedTotal;
-                document.getElementById('summary-total').innerText = formattedTotal;
-            }
+                                } else {
+
+                                    $imageUrl = asset(
+                                        'uploads/products/' .
+                                        ltrim($image, '/')
+                                    );
+
+                                }
+
+                            } else {
+
+                                $imageUrl = null;
+
+                            }
+
+                        @endphp
+
+
+                        <div class="order-item">
+
+
+                            {{-- PRODUCT IMAGE --}}
+
+                            <div class="product-image-wrapper">
+
+                                @if($imageUrl)
+
+                                    <img
+                                        src="{{ $imageUrl }}"
+                                        alt="{{ $item['name'] }}"
+                                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                    >
+
+                                    <div
+                                        class="product-placeholder"
+                                        style="display:none;"
+                                    >
+                                        <i class="bi bi-image"></i>
+                                    </div>
+
+                                @else
+
+                                    <div class="product-placeholder">
+                                        <i class="bi bi-image"></i>
+                                    </div>
+
+                                @endif
+
+                            </div>
+
+
+                            {{-- PRODUCT INFORMATION --}}
+
+                            <div class="order-item-info">
+
+                                <div class="product-name">
+                                    {{ $item['name'] }}
+                                </div>
+
+                                <div class="product-quantity">
+
+                                    Qty:
+                                    {{ $item['quantity'] }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- ITEM TOTAL --}}
+
+                            <div class="product-price">
+
+                                Rs
+                                {{ number_format($item['item_total'], 2) }}
+
+                            </div>
+
+                        </div>
+
+                    @endforeach
+
+
+
+                    {{-- =================================================
+                         SUBTOTAL
+                    ================================================== --}}
+
+                    <div class="total-row mt-3">
+
+                        <span>
+                            Subtotal
+                        </span>
+
+                        <span>
+                            Rs {{ number_format($subtotal, 2) }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- SHIPPING --}}
+
+                    <div class="total-row shipping">
+
+                        <span>
+                            Shipping Fee
+                        </span>
+
+                        <span>
+                            Free
+                        </span>
+
+                    </div>
+
+
+                    {{-- TOTAL --}}
+
+                    <div class="grand-total">
+
+                        <span>
+                            Total Amount
+                        </span>
+
+                        <span>
+                            Rs {{ number_format($total, 2) }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- =================================================
+                         PLACE ORDER
+                    ================================================== --}}
+
+                    <button
+                        type="submit"
+                        id="placeOrderButton"
+                        class="place-order-btn"
+                    >
+
+                        <span id="buttonText">
+                            Place Order Now
+                        </span>
+
+                        <span
+                            id="buttonSpinner"
+                            class="spinner-border spinner-border-sm ms-2"
+                            style="display:none;"
+                        ></span>
+
+                    </button>
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<script>
+
+    document
+        .getElementById('checkoutForm')
+        .addEventListener('submit', function () {
+
+            const button =
+                document.getElementById('placeOrderButton');
+
+            const text =
+                document.getElementById('buttonText');
+
+            const spinner =
+                document.getElementById('buttonSpinner');
+
+
+            button.disabled = true;
+
+            text.innerText =
+                'Processing Order...';
+
+            spinner.style.display =
+                'inline-block';
+
         });
-    </script>
+
+</script>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+</script>
+
 </body>
+
 </html>

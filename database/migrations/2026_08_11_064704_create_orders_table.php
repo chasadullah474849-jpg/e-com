@@ -9,31 +9,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('orders', function (Blueprint $table) {
-
             $table->id();
-
-            $table->string('name');
-
+            $table->string('order_number')->unique();
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('email');
-
             $table->string('phone');
-
-            $table->text('address');
-
+            $table->string('address');
+            $table->string('address_2')->nullable();
+            $table->string('country');
             $table->string('city');
-
-            $table->string('postal_code')->nullable();
-
-            $table->string('payment_method');
-
-            $table->decimal('subtotal', 12, 2)->default(0);
-
-            $table->decimal('shipping', 12, 2)->default(0);
-
-            $table->decimal('total', 12, 2)->default(0);
-
-            $table->string('status')->default('pending');
-
+            $table->string('zip');
+            $table->string('payment_method')->default('cod');
+            $table->string('payment_status')->default('pending');
+            $table->string('order_status')->default('pending');
+            $table->decimal('subtotal', 10, 2);
+            $table->decimal('shipping', 10, 2)->default(0.00);
+            $table->decimal('total', 10, 2);
             $table->timestamps();
         });
     }

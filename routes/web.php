@@ -235,18 +235,88 @@ Route::prefix('cart')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::get('/checkout/login', [CheckoutController::class, 'login'])->name('checkout.login');
-Route::post('/checkout/login', [CheckoutController::class, 'authenticate'])->name('checkout.authenticate');
-Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
-Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.submit');
-Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
-Route::post('/checkout/logout', [CheckoutController::class, 'logout'])->name('checkout.logout');
-Route::post('/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place');
-Route::get('/order-success', [CheckoutController::class, 'orderSuccess'])->name('order.success');
+
+/*
+|--------------------------------------------------------------------------
+| CHECKOUT ROUTES
+|--------------------------------------------------------------------------
+*/
 
 
 
+/*
+|--------------------------------------------------------------------------
+| Show checkout
+|--------------------------------------------------------------------------
+*/
 
+Route::get(
+    '/checkout',
+    [CheckoutController::class, 'index']
+)->name('checkout');
+
+
+/*
+|--------------------------------------------------------------------------
+| Submit checkout / Place Order
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/checkout',
+    [CheckoutController::class, 'process']
+)->name('checkout.submit');
+
+
+/*
+|--------------------------------------------------------------------------
+| Optional old URL support
+|--------------------------------------------------------------------------
+| If an old form is still using /place-order,
+| it will use the same correct process() method.
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/place-order',
+    [CheckoutController::class, 'process']
+)->name('checkout.place');
+
+
+/*
+|--------------------------------------------------------------------------
+| Order success
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/order-success',
+    [CheckoutController::class, 'orderSuccess']
+)->name('order.success');
+
+
+/*
+|--------------------------------------------------------------------------
+| Checkout Login
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/checkout/login',
+    [CheckoutController::class, 'login']
+)->name('checkout.login');
+
+
+/*
+|--------------------------------------------------------------------------
+| Cart quantity update
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/cart/update-quantity',
+    [CheckoutController::class, 'updateQuantity']
+)->name('cart.update-quantity');
 
 
 Route::prefix('admin')->group(function () {

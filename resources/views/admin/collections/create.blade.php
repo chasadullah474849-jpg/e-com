@@ -42,7 +42,7 @@
         <h5 class="card-header">Create Collection</h5>
         <div class="card-body">
             <!-- CRUCIAL: enctype attribute added for file uploads -->
-            <form action="{{ route('collections.store') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.collections.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 <!-- Collection Name -->
@@ -104,7 +104,7 @@
                 <!-- Form Action Buttons -->
                 <div class="mt-4">
                     <button type="submit" class="btn btn-primary me-2">Save Collection</button>
-                    <a href="{{ route('collections.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <a href="{{ route('admin.collections.index') }}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </form>
         </div>
