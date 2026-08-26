@@ -725,10 +725,8 @@
             <h4 class="text-uppercase">
                 Read Blog Posts
             </h4>
-
-            <a href="{{ route('blogs') }}" class="btn-link">
-                View All
-            </a>
+<a href="{{ url('/blogs') }}" class="btn-link">View All</a>
+</a>
 
         </div>
 
@@ -745,7 +743,7 @@
                         {{-- Blog Image --}}
                         <div class="post-image">
 
-                            <a href="{{ route('blog.details', $blog->id) }}">
+                            <a href="{{ route('home.blog.details', $blog->id) }}">
 
                                 @if(!empty($blog->image))
 
@@ -800,7 +798,7 @@
                             {{-- Blog Title --}}
                             <h5 class="post-title text-uppercase w-100">
 
-                                <a href="{{ route('blog.details', $blog->id) }}">
+                                <a href="{{ route('home.blog.details', $blog->id) }}">
 
                                     {{ $blog->title }}
 

@@ -10,18 +10,11 @@ use Illuminate\Support\Facades\File;
 
 class BlogController extends Controller
 {
-    /**
-     * Display all blogs
-     */
-    public function index()
-    {
-        $blogs = Blog::with('category')
-            ->latest()
-            ->get();
-
-        return view('admin.blogs.index', compact('blogs'));
-    }
-
+ public function index()
+{
+    $blogs = Blog::latest()->get();
+    return view('admin.blogs.index', compact('blogs')); // Points to resources/views/admin/blogs/index.blade.php
+}
 
     /**
      * Show create blog form
@@ -323,4 +316,11 @@ class BlogController extends Controller
             ->route('admin.blogs.index')
             ->with('success', 'Blog Deleted Successfully');
     }
+    public function show($id)
+{
+    // Fetches blog by ID or UUID
+    $blog = Blog::findOrFail($id);
+
+    return view('admin.blogs.show', compact('blog'));
+}
 }
