@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CollectionProController;
+use App\Http\Controllers\ProfileController;
+
 
 
 /*
@@ -38,8 +40,7 @@ Route::get('/product/{uuid}', [HomeController::class, 'productDetails'])->name('
 /* Public Collection Details Route */
 Route::get('/collection/{uuid}', [HomeController::class, 'collectionDetails'])->name('collection.details');
 
-
-/*
+Route::get('/search', [HomeController::class, 'search'])->name('search');/*
 |--------------------------------------------------------------------------
 | Authentication
 |--------------------------------------------------------------------------
@@ -360,3 +361,7 @@ Route::get('/blog/{id}', [BlogController::class, 'show'])->name('home.blog.detai
 
 
 
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+});

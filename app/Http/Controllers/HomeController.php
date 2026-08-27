@@ -122,4 +122,32 @@ class HomeController extends Controller
 
     return back()->with('success', 'Your message has been sent successfully!');
 }
+public function search(Request $request)
+    {
+        // Get search keyword from request
+        $searchQuery = $request->input('s') ?? $request->input('query');
+
+        // Fetch dynamic categories
+        $categories = Category::all();
+
+        $products = collect();
+        $blogs = collect();
+
+        if (!empty($searchQuery)) {
+            // Search Products
+            $products = Product::where('name', 'LIKE', "%{$searchQuery}%")
+                ->orWhere('description', 'LIKE', "%{$searchQuery}%")
+                ->get();
+
+            // Search Blogs
+            if (class_exists('App\Models\Blog')) {
+                $blogs = Blog::where('title', 'LIKE', "%{$searchQuery}%")
+                    ->orWhere('content', 'LIKE', "%{$searchQuery}%")
+                    ->get();
+            }
+        }
+
+        // Return the search results view directly
+        return view('search', compact('products', 'categories', 'blogs', 'searchQuery'));
+    }
 }
