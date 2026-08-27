@@ -90,17 +90,19 @@ class HomeController extends Controller
 
         return view('home.product_details', compact('product'));
     }
-    public function blogs()
-{
-    $blogs = Blog::latest()->get();
+  public function blogs()
+    {
+        $blogs = Blog::latest()->get();
 
-    return view('home.blogs', compact('blogs'));
-}
+        // Change to 'admin.blogs.index' if you are using your admin table layout
+        // Or keep 'home.blogs' if you created resources/views/home/blogs.blade.php
+        return view('admin.blogs.index', compact('blogs'));
+    }
 
-public function blogDetails($uuid)
-{
-    $blog = Blog::where('uuid', $uuid)->firstOrFail();
+    public function blogDetails($uuid)
+    {
+        $blog = Blog::where('uuid', $uuid)->firstOrFail();
 
-    return view('home.blog-details', compact('blog'));
-}
+        return view('home.blog-details', compact('blog'));
+    }
 }
