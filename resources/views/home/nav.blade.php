@@ -107,11 +107,11 @@
                 </li> -->
 
                 <li class="nav-item">
-                  <a class="nav-link" href="#">Blog</a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="#">Contact</a>
-                </li>
+    <a class="nav-link" href="{{ route('home.blogs') }}">Blog</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ route('home.contact') }}">Contact</a>
+</li>
                    <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle" href="#" id="dropdownPages" data-bs-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="false">Pages</a>
@@ -197,7 +197,7 @@
 
         <div class="col-3 col-lg-auto">
           <ul class="list-unstyled d-flex m-0">
-           
+
             <li class="d-none d-lg-block">
               <a href="index.html" class="text-uppercase mx-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart"
                 aria-controls="offcanvasCart">Cart <span class="cart-count">(0)</span>

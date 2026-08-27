@@ -335,11 +335,12 @@ Route::get('/collection-pro/{uuid}', [HomeController::class, 'collectionProDetai
 
 
 
-Route::get('/blogs', [HomeController::class, 'blogs'])
-    ->name('blogs');
-
-Route::get('/blog/{id}', [HomeController::class, 'blogDetails'])
-    ->name('blog.details');
+// Public Navigation Routes
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/blogs', [HomeController::class, 'blogs'])->name('home.blogs');
+Route::get('/blog/{id}', [HomeController::class, 'blogDetails'])->name('home.blog.details');
+Route::get('/contact', [HomeController::class, 'contact'])->name('home.contact');
+Route::post('/contact', [HomeController::class, 'sendContactForm'])->name('home.contact.send');
 
 
 // Admin Blog Routes
@@ -356,3 +357,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // Public Blog Route
 Route::get('/blogs', [HomeController::class, 'blogs'])->name('home.blogs');
 Route::get('/blog/{id}', [BlogController::class, 'show'])->name('home.blog.details');
+
+
+

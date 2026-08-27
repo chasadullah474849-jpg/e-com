@@ -105,4 +105,21 @@ class HomeController extends Controller
 
         return view('home.blog-details', compact('blog'));
     }
+    public function contact()
+    {
+        return view('home.contact');
+    }
+    public function sendContactForm(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'phone' => 'nullable|string|max:20',
+        'message' => 'required|string',
+    ]);
+
+    // Handle form logic (e.g., send an email or save to DB)
+
+    return back()->with('success', 'Your message has been sent successfully!');
+}
 }
