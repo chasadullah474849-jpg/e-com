@@ -6,43 +6,30 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
-    {
-        Schema::create('blogs', function (Blueprint $table) {
+{
+    Schema::create('blogs', function (Blueprint $table) {
 
-            $table->uuid('id')->primary();
+        $table->id();
 
-            // Category Foreign Key
-            $table->unsignedBigInteger('category_id');
+        $table->uuid('uuid')->unique();
 
-            $table->foreign('category_id')
-                ->references('id')
-                ->on('categories')
-                ->cascadeOnDelete();
+        $table->string('name');
 
-            $table->string('name');
+        $table->string('title');
 
-            $table->string('image')->nullable();
+        $table->text('description');
 
-            $table->string('title');
+        $table->string('image')->nullable();
 
-            $table->text('description');
+        $table->enum('status', [
+            'draft',
+            'published'
+        ])->default('draft');
 
-            $table->longText('details');
-
-            $table->boolean('status')->default(true);
-
-            $table->timestamps();
-
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
+        $table->timestamps();
+    });
+}
     public function down(): void
     {
         Schema::dropIfExists('blogs');

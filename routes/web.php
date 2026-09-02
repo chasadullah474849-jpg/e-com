@@ -22,7 +22,11 @@ use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CollectionProController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\AdminSearchController;
+use App\Http\Controllers\ShopController;
+use Illuminate\Support\Facades\Mail;
 
 
 
@@ -363,5 +367,36 @@ Route::get('/blog/{id}', [BlogController::class, 'show'])->name('home.blog.detai
 
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+ Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile.show');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('admin.profile.edit');
+});
+
+
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::resource('orders', OrderController::class);
+});
+
+
+
+Route::get('/product/{id}', [ShopController::class, 'product'])
+    ->name('shop.product');
+
+    Route::get('/shop/category/{uuid}', [ShopController::class, 'category'])->name('shop.category');
+
+
+
+
+
+
+Route::get('/test-email', function () {
+    try {
+        Mail::raw('SMTP test email from Laravel localhost!', function ($message) {
+            $message->to('chasadullah474849@gmail.com')
+                    ->subject('Test Mail - Setup Verification');
+        });
+        return 'Email sent successfully! Check your inbox/spam folder.';
+    } catch (\Exception $e) {
+        return 'Email failed with error: ' . $e->getMessage();
+    }
 });

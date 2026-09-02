@@ -37,122 +37,137 @@
         <div class="layout-page">
                 @include('admin.nav')
 
+                
+<link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
-                <div class="container-fluid">
+<div class="container-xxl flex-grow-1 container-p-y py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">Add New Blog</h4>
+            <p class="text-muted small mb-0">Create a new blog post for your website.</p>
+        </div>
+        <a href="{{ route('admin.blogs.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bx bx-arrow-back me-1"></i> Back to Blogs
+        </a>
+    </div>
 
-<div class="card">
+    <!-- Error Alert Box -->
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h6 class="alert-heading fw-bold mb-1">Please fix the following errors:</h6>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-<div class="card-header">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h5 class="card-title fw-bold mb-1">Blog Information</h5>
+            <p class="text-muted small mb-4">Enter the details of your new blog post below.</p>
 
-<h4>Create Blog</h4>
+            <form action="{{ route('admin.blogs.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
 
+                <!-- Blog Name -->
+                <div class="mb-3">
+                    <label for="name" class="form-label fw-semibold">Blog Name <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control @error('name') is-invalid @enderror"
+                           id="name"
+                           name="name"
+                           value="{{ old('name') }}"
+                           placeholder="Fashion / Jul 11, 2022"
+                           required>
+                    @error('name')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Blog Title -->
+                <div class="mb-3">
+                    <label for="title" class="form-label fw-semibold">Blog Title <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control @error('title') is-invalid @enderror"
+                           id="title"
+                           name="title"
+                           value="{{ old('title') }}"
+                           placeholder="Top 10 fashion trend for summer"
+                           required>
+                    @error('title')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="description" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                    <textarea class="form-control @error('description') is-invalid @enderror"
+                              id="description"
+                              name="description"
+                              rows="5"
+                              placeholder="Write your blog content here..."
+                              required>{{ old('description') }}</textarea>
+                    @error('description')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Blog Image -->
+                <div class="mb-3">
+                    <label for="image" class="form-label fw-semibold">Blog Image</label>
+                    <input type="file"
+                           class="form-control @error('image') is-invalid @enderror"
+                           id="image"
+                           name="image"
+                           accept="image/*">
+                    <small class="text-muted d-block mt-1">Recommended formats: JPG, PNG, WEBP, max 2MB.</small>
+                    @error('image')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Status Radio Buttons -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold d-block">Status <span class="text-danger">*</span></label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input @error('status') is-invalid @enderror"
+                               type="radio"
+                               name="status"
+                               id="status_published"
+                               value="Published"
+                               {{ old('status', 'Published') == 'Published' || old('status') == '1' || old('status') == 'active' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="status_published">Published</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input @error('status') is-invalid @enderror"
+                               type="radio"
+                               name="status"
+                               id="status_draft"
+                               value="Draft"
+                               {{ old('status') == 'Draft' || old('status') == '0' || old('status') == 'inactive' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="status_draft">Draft</label>
+                    </div>
+                    @error('status')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Form Buttons -->
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a href="{{ route('admin.blogs.index') }}" class="btn btn-light">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bx bx-check me-1"></i> Save Blog
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
-<div class="card-body">
-
-<form action="{{ route('admin.blogs.store') }}"
-      method="POST"
-      enctype="multipart/form-data">
-
-@csrf
-
-<div class="mb-3">
-
-<label>Category</label>
-
-<select name="category_id" class="form-control">
-
-<option value="">Select Category</option>
-
-@foreach($categories as $category)
-
-<option value="{{ $category->id }}">
-{{ $category->name }}
-</option>
-
-@endforeach
-
-</select>
-
-</div>
-
-<div class="mb-3">
-
-<label>Name</label>
-
-<input type="text"
-       name="name"
-       class="form-control"
-       value="{{ old('name') }}">
-
-</div>
-
-<div class="mb-3">
-
-<label>Title</label>
-
-<input type="text"
-       name="title"
-       class="form-control"
-       value="{{ old('title') }}">
-
-</div>
-
-<div class="mb-3">
-
-<label>Description</label>
-
-<textarea name="description"
-          class="form-control"
-          rows="4">{{ old('description') }}</textarea>
-
-</div>
-
-
-<div class="mb-3">
-
-<label>Image</label>
-
-<input type="file"
-       name="image"
-       class="form-control">
-
-</div>
-
-<div class="mb-3">
-
-<label>Status</label>
-
-<select name="status" class="form-control">
-
-<option value="1">Active</option>
-
-<option value="0">Inactive</option>
-
-</select>
-
-</div>
-
-<button class="btn btn-success">
-
-Save Blog
-
-</button>
-
-<a href="{{ route('admin.blogs.index') }}"
-class="btn btn-secondary">
-
-Back
-
-</a>
-
-</form>
-
-</div>
-
-</div>
-
-</div>
 
 
 @include('admin.footer')

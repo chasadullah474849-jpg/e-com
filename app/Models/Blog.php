@@ -2,30 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Blog extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory;
 
     protected $fillable = [
-        'category_id',
-        'name',
-        'image',
-        'title',
-        'description',
-        'details',
-        'status'
+    'uuid',
+    'name',
+    'title',
+    'description',
+    'details',
+    'image',
+    'status',
+];
+
+    protected $casts = [
+        'published_at' => 'datetime',
     ];
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    public function category()
+    protected static function booted(): void
     {
-        return $this->belongsTo(Category::class);
+        static::creating(function (Blog $blog) {
+            if (empty($blog->uuid)) {
+                $blog->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

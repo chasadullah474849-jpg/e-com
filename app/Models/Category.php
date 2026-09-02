@@ -51,4 +51,8 @@ public function getStatusLabelAttribute()
 {
     return 'uuid';
 }
+ public function products()
+    {
+        return $this->hasMany(Product::class, 'category_id');
+    }
 }

@@ -19,10 +19,7 @@ class SubCategoryController extends Controller
             ->latest()
             ->get();
 
-        return view(
-            'admin.subcategories.index',
-            compact('subcategories')
-        );
+        return view('admin.subcategories.index', compact('subcategories'));
     }
 
     /**
@@ -32,10 +29,7 @@ class SubCategoryController extends Controller
     {
         $categories = Category::orderBy('name')->get();
 
-        return view(
-            'admin.subcategories.create',
-            compact('categories')
-        );
+        return view('admin.subcategories.create', compact('categories'));
     }
 
     /**
@@ -45,34 +39,32 @@ class SubCategoryController extends Controller
     {
         $validated = $request->validate([
             'category_id' => 'required|integer|exists:categories,id',
-
-            'name' => 'required|string|max:255',
-
+            'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
-
-            // IMPORTANT:
-            // Your form is sending 1 or 0
-            'status' => 'required|in:0,1',
+            'status'      => 'required|in:0,1',
         ]);
 
+        // Generate base slug
+        $slug = Str::slug($validated['name']);
+
+        // Ensure slug uniqueness
+        $count = SubCategory::where('slug', 'LIKE', "{$slug}%")->count();
+        if ($count > 0) {
+            $slug = "{$slug}-" . ($count + 1);
+        }
+
         SubCategory::create([
-            'uuid' => (string) Str::uuid(),
-
+            'uuid'        => (string) Str::uuid(),
             'category_id' => $validated['category_id'],
-
-            'name' => $validated['name'],
-
+            'name'        => $validated['name'],
+            'slug'        => $slug,
             'description' => $validated['description'] ?? null,
-
-            'status' => (int) $validated['status'],
+            'status'      => (int) $validated['status'],
         ]);
 
         return redirect()
             ->route('subcategories.index')
-            ->with(
-                'success',
-                'Subcategory created successfully.'
-            );
+            ->with('success', 'Subcategory created successfully.');
     }
 
     /**
@@ -81,16 +73,9 @@ class SubCategoryController extends Controller
     public function edit($id)
     {
         $subcategory = SubCategory::findOrFail($id);
+        $categories  = Category::orderBy('name')->get();
 
-        $categories = Category::orderBy('name')->get();
-
-        return view(
-            'admin.subcategories.edit',
-            compact(
-                'subcategory',
-                'categories'
-            )
-        );
+        return view('admin.subcategories.edit', compact('subcategory', 'categories'));
     }
 
     /**
@@ -102,33 +87,32 @@ class SubCategoryController extends Controller
 
         $validated = $request->validate([
             'category_id' => 'required|integer|exists:categories,id',
-
-            'name' => 'required|string|max:255',
-
+            'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
-
-            // IMPORTANT:
-            // Accept 1 = Active
-            // Accept 0 = Inactive
-            'status' => 'required|in:0,1',
+            'status'      => 'required|in:0,1',
         ]);
+
+        // Update slug if name changes
+        $slug = Str::slug($validated['name']);
+        $count = SubCategory::where('slug', 'LIKE', "{$slug}%")
+            ->where('id', '!=', $id)
+            ->count();
+
+        if ($count > 0) {
+            $slug = "{$slug}-" . ($count + 1);
+        }
 
         $subcategory->update([
             'category_id' => $validated['category_id'],
-
-            'name' => $validated['name'],
-
+            'name'        => $validated['name'],
+            'slug'        => $slug,
             'description' => $validated['description'] ?? null,
-
-            'status' => (int) $validated['status'],
+            'status'      => (int) $validated['status'],
         ]);
 
         return redirect()
             ->route('subcategories.index')
-            ->with(
-                'success',
-                'Subcategory updated successfully.'
-            );
+            ->with('success', 'Subcategory updated successfully.');
     }
 
     /**
@@ -137,14 +121,10 @@ class SubCategoryController extends Controller
     public function destroy($id)
     {
         $subcategory = SubCategory::findOrFail($id);
-
         $subcategory->delete();
 
         return redirect()
             ->route('subcategories.index')
-            ->with(
-                'success',
-                'Subcategory deleted successfully.'
-            );
+            ->with('success', 'Subcategory deleted successfully.');
     }
 }

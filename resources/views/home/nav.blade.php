@@ -29,7 +29,7 @@
               <ul class="navbar-nav justify-content-end flex-grow-1 gap-1 gap-md-5 pe-3">
                 <li class="nav-item dropdown">
                  <a class="nav-link active" href="{{ route('home') }}">Home</a>
-                  
+
                 </li>
                 <!-- <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle" href="#" id="dropdownShop" data-bs-toggle="dropdown"
@@ -103,9 +103,6 @@
                     aria-haspopup="true" aria-expanded="false">Pages</a>
                   <ul class="dropdown-menu list-unstyled" aria-labelledby="dropdownPages">
                     <li>
-                      <a href="index.html" class="dropdown-item item-anchor">About </a>
-                    </li>
-                    <li>
                       <a href="index.html" class="dropdown-item item-anchor">Cart </a>
                     </li>
                     <li>
@@ -115,20 +112,12 @@
                       <a href="index.html" class="dropdown-item item-anchor">Coming Soon </a>
                     </li>
                     <li>
-                      <a href="index.html" class="dropdown-item item-anchor">Contact </a>
-                    </li>
-                    <li>
-                      <a href="index.html" class="dropdown-item item-anchor">Error Page </a>
+                      <a href="{{ route('home.contact') }}" class="dropdown-item item-anchor">Contact </a>
                     </li>
                     <li>
                       <a href="index.html" class="dropdown-item item-anchor">FAQs </a>
                     </li>
-                    <li>
-                      <a href="index.html" class="dropdown-item item-anchor">My Account </a>
-                    </li>
-                    <li>
-                      <a href="index.html" class="dropdown-item item-anchor">Order Tracking </a>
-                    </li>
+
 
 
                   </ul>

@@ -7,12 +7,11 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 
-
 class Product extends Model
 {
     use HasFactory;
 
-     protected $fillable = [
+    protected $fillable = [
         'uuid',
         'name',
         'description',
@@ -21,38 +20,58 @@ class Product extends Model
         'category_id',
         'subcategory_id',
         'status',
+        'image',
     ];
-
 
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($product) {
+
             if (empty($product->uuid)) {
                 $product->uuid = (string) Str::uuid();
             }
+
         });
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Category
+    |--------------------------------------------------------------------------
+    */
+
     public function category()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sub Category
+    |--------------------------------------------------------------------------
+    */
+
     public function subcategory()
+    {
+        return $this->belongsTo(
+            SubCategory::class,
+            'subcategory_id'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product Images
+    |--------------------------------------------------------------------------
+    */
+
+    public function images()
 {
-    return $this->belongsTo(SubCategory::class, 'subcategory_id');
+    return $this->hasMany(ProductImage::class, 'product_id');
 }
-
-public function images()
-{
-    return $this->hasMany(
-        ProductImage::class,
-        'product_id'
-    );
-}
-
-
-
 }

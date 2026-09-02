@@ -299,56 +299,127 @@
   </section>
 
 <section class="categories overflow-hidden">
+
     <div class="container">
+
         <div class="open-up" data-aos="zoom-out">
+
             <div class="row">
 
                 @foreach($categories as $category)
-                <div class="col-md-4 mb-4">
-                    <div class="cat-item image-zoom-effect">
 
-                        <div class="image-holder">
-                            <a href="#">
-                                @if($category->image)
-                                    <img src="{{ asset('storage/'.$category->image) }}"
-                                         alt="{{ $category->name }}"
-                                         class="product-image img-fluid"
-                                         style="height:350px; width:100%; object-fit:cover;">
-                                @else
-                                    <img src="{{ asset('users/images/no-image.png') }}"
-                                         alt="No Image"
-                                         class="product-image img-fluid"
-                                         style="height:350px; width:100%; object-fit:cover;">
-                                @endif
-                            </a>
-                        </div>
+                    <div class="col-md-4 mb-4">
 
-                        <div class="category-content">
-                            <div class="product-button">
-                                <a href="#" class="btn btn-common text-uppercase">
-                                    {{ $category->name }}
+                        <div class="cat-item image-zoom-effect">
+
+                            <div class="image-holder">
+
+                                <a href="{{ route('shop.category', $category->uuid) }}">
+
+                                    @if($category->image)
+
+                                        <img
+                                            src="{{ asset('storage/' . $category->image) }}"
+                                            alt="{{ $category->name }}"
+                                            class="product-image img-fluid"
+                                            style="height:350px; width:100%; object-fit:cover;"
+                                        >
+
+                                    @else
+
+                                        <img
+                                            src="{{ asset('users/images/no-image.png') }}"
+                                            alt="{{ $category->name }}"
+                                            class="product-image img-fluid"
+                                            style="height:350px; width:100%; object-fit:cover;"
+                                        >
+
+                                    @endif
+
                                 </a>
+
                             </div>
+
+                            <div class="category-content">
+
+                                <div class="product-button">
+
+                                    <a
+                                        href="{{ route('shop.category', $category->uuid) }}"
+                                        class="btn btn-common text-uppercase"
+                                    >
+                                        {{ $category->name }}
+                                    </a>
+
+                                </div>
+
+                            </div>
+
                         </div>
 
                     </div>
-                </div>
+
                 @endforeach
 
             </div>
+
         </div>
+
     </div>
+
 </section>
+<style>
+    /* Fixed size for Swiper product cards */
+    .product-swiper .swiper-slide {
+        height: auto;
+    }
+    .product-swiper .image-holder {
+        width: 100%;
+        height: 380px;
+        overflow: hidden;
+        position: relative;
+    }
+    .product-swiper .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+    }
 
+    /* Fixed size for Collection Banner */
+    .collection-item .image-holder {
+        width: 100%;
+        height: 100%;
+        min-height: 420px;
+    }
+    .collection-item .image-holder img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
 
-  <section id="best-sellers" class="best-sellers product-carousel py-5 position-relative overflow-hidden">
+    /* Seamless attachment of collection content card */
+    .collection-content-box {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 3rem;
+    }
+</style>
+
+<!-- Our New Arrivals Section -->
+<section id="new-arrivals" class="best-sellers product-carousel py-5 position-relative overflow-hidden">
     <div class="container">
 
-        <div class="d-flex flex-wrap justify-content-between align-items-center mt-5 mb-3">
-            <h4 class="text-uppercase">Our New Arrivals</h4>
-<a href="{{ route('products') }}" class="btn-link">
-    View All Products
-</a>        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3">
+            <h4 class="text-uppercase fw-bold m-0">Our New Arrivals</h4>
+            <a href="{{ route('products') }}" class="btn-link text-decoration-none fw-bold">
+                View All Products
+            </a>
+        </div>
 
         <div class="swiper product-swiper open-up" data-aos="zoom-out">
             <div class="swiper-wrapper d-flex">
@@ -357,11 +428,9 @@
                 <div class="swiper-slide">
                     <div class="product-item image-zoom-effect link-effect">
 
-                        <div class="image-holder">
-
+                        <div class="image-holder mb-2">
                             <a href="{{ route('product.details', $product->uuid) }}">
-
-                                @if($product->images->count())
+                                @if($product->images && $product->images->count())
                                     <img src="{{ asset('uploads/products/'.$product->images->first()->image) }}"
                                          alt="{{ $product->name }}"
                                          class="product-image img-fluid">
@@ -370,30 +439,27 @@
                                          alt="No Image"
                                          class="product-image img-fluid">
                                 @endif
-
                             </a>
 
-                            <a href="#" class="btn-icon btn-wishlist">
+                            <a href="#" class="btn-icon btn-wishlist position-absolute top-0 end-0 p-3">
                                 <svg width="24" height="24" viewBox="0 0 24 24">
                                     <use xlink:href="#heart"></use>
                                 </svg>
                             </a>
+                        </div>
 
-                            <div class="product-content">
-                                <h5 class="text-uppercase fs-5 mt-3">
-                                    <a href="{{ route('product.details', $product->uuid) }}">
-                                        {{ $product->name }}
-                                    </a>
-                                </h5>
-
-                                <a href="{{ route('product.details', $product->uuid) }}"
-                                   class="text-decoration-none"
-                                   data-after="Add to cart">
-                                    <span>Rs. {{ number_format($product->price, 2) }}</span>
+                        <div class="product-content">
+                            <h5 class="text-uppercase fs-6 mt-2 mb-1">
+                                <a href="{{ route('product.details', $product->uuid) }}" class="text-dark text-decoration-none fw-semibold">
+                                    {{ $product->name }}
                                 </a>
+                            </h5>
 
-                            </div>
-
+                            <a href="{{ route('product.details', $product->uuid) }}"
+                               class="text-decoration-none text-muted small"
+                               data-after="Add to cart">
+                                <span>Rs. {{ number_format($product->price, 2) }}</span>
+                            </a>
                         </div>
 
                     </div>
@@ -420,17 +486,17 @@
     </div>
 </section>
 
-<!-- Collection Pro Section (Classic Winter Banner) -->
+<!-- Collection Section (Classic Winter Banner) -->
 @if(isset($collectionPro) && $collectionPro)
 <section class="collection bg-light position-relative py-5">
     <div class="container">
         <div class="row">
-            <div class="title-xlarge text-uppercase txt-fx domino">
+            <div class="title-xlarge text-uppercase txt-fx domino mb-3">
                 Collection Pro
             </div>
 
-            <div class="collection-item d-flex flex-wrap my-5">
-                <div class="col-md-6 column-container">
+            <div class="collection-item g-0 row align-items-stretch my-3 shadow-sm rounded overflow-hidden">
+                <div class="col-md-6 p-0">
                     <div class="image-holder">
                         <img src="{{ asset('storage/' . $collectionPro->image) }}"
                              alt="{{ $collectionPro->title }}"
@@ -438,20 +504,18 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 column-container bg-white">
-                    <div class="collection-content p-5 m-0 m-md-5">
-                        <h3 class="element-title text-uppercase">
+                <div class="col-md-6 bg-white d-flex align-items-center">
+                    <div class="collection-content-box">
+                        <h3 class="element-title text-uppercase fw-bold mb-3">
                             {{ $collectionPro->title }}
                         </h3>
 
-                        <p>{{ $collectionPro->description }}</p>
+                        <p class="text-secondary mb-4">{{ $collectionPro->description }}</p>
 
-                        @if($collectionPro->button_link)
-                            <a href="{{ $collectionPro->button_link }}"
-                               class="btn btn-dark text-uppercase mt-3">
-                                Discover Now
-                            </a>
-                        @endif
+                        <a href="{{ $collectionPro->button_link ?? route('products') }}"
+                           class="btn btn-dark text-uppercase px-4 py-2">
+                            Shop Collection
+                        </a>
                     </div>
                 </div>
             </div>
@@ -463,12 +527,12 @@
 <section class="collection bg-light position-relative py-5">
     <div class="container">
         <div class="row">
-            <div class="title-xlarge text-uppercase txt-fx domino">
+            <div class="title-xlarge text-uppercase txt-fx domino mb-3">
                 Collection
             </div>
 
-            <div class="collection-item d-flex flex-wrap my-5">
-                <div class="col-md-6 column-container">
+            <div class="collection-item g-0 row align-items-stretch my-3 shadow-sm rounded overflow-hidden">
+                <div class="col-md-6 p-0">
                     <div class="image-holder">
                         <img src="{{ asset('storage/' . $collectionss->image) }}"
                              alt="{{ $collectionss->name }}"
@@ -476,16 +540,50 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 column-container bg-white">
-                    <div class="collection-content p-5 m-0 m-md-5">
-                        <h3 class="element-title text-uppercase">
+                <div class="col-md-6 bg-white d-flex align-items-center">
+                    <div class="collection-content-box">
+                        <h3 class="element-title text-uppercase fw-bold mb-3">
                             {{ $collectionss->name }}
                         </h3>
 
-                        <p>{{ $collectionss->description }}</p>
+                        <p class="text-secondary mb-4">{{ $collectionss->description }}</p>
 
                         <a href="{{ route('collection.details', $collectionss->uuid) }}"
-                           class="btn btn-dark text-uppercase mt-3">
+                           class="btn btn-dark text-uppercase px-4 py-2">
+                            Shop Collection
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@else
+<!-- Default Static Fallback Section -->
+<section class="collection bg-light position-relative py-5">
+    <div class="container">
+        <div class="row">
+            <div class="collection-item g-0 row align-items-stretch my-3 shadow-sm rounded overflow-hidden">
+                <div class="col-md-6 p-0">
+                    <div class="image-holder">
+                        <img src="{{ asset('users/images/collection-banner.jpg') }}"
+                             alt="Classics Winter Collections"
+                             class="product-image img-fluid">
+                    </div>
+                </div>
+
+                <div class="col-md-6 bg-white d-flex align-items-center">
+                    <div class="collection-content-box">
+                        <h3 class="element-title text-uppercase fw-bold mb-3">
+                            Classics Winter Collections
+                        </h3>
+
+                        <p class="text-secondary mb-4">
+                            Discover our latest winter arrivals designed for elegance and ultimate comfort. Explore premium outerwear, cozy knits, and seasonal essentials.
+                        </p>
+
+                        <a href="{{ route('products') }}"
+                           class="btn btn-dark text-uppercase px-4 py-2">
                             Shop Collection
                         </a>
                     </div>
@@ -495,14 +593,17 @@
     </div>
 </section>
 @endif
-  <section id="best-sellers" class="best-sellers product-carousel py-5 position-relative overflow-hidden">
+
+<!-- Best Selling Items Section -->
+<section id="best-sellers" class="best-sellers product-carousel py-5 position-relative overflow-hidden">
     <div class="container">
 
-        <div class="d-flex flex-wrap justify-content-between align-items-center mt-5 mb-3">
-            <h4 class="text-uppercase">Best Selling Items</h4>
-<a href="{{ route('products') }}" class="btn-link">
-    View All Products
-</a>        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3">
+            <h4 class="text-uppercase fw-bold m-0">Best Selling Items</h4>
+            <a href="{{ route('products') }}" class="btn-link text-decoration-none fw-bold">
+                View All Products
+            </a>
+        </div>
 
         <div class="swiper product-swiper open-up" data-aos="zoom-out">
             <div class="swiper-wrapper d-flex">
@@ -511,11 +612,9 @@
                 <div class="swiper-slide">
                     <div class="product-item image-zoom-effect link-effect">
 
-                        <div class="image-holder">
-
+                        <div class="image-holder mb-2">
                             <a href="{{ route('product.details', $product->uuid) }}">
-
-                                @if($product->images->count())
+                                @if($product->images && $product->images->count())
                                     <img src="{{ asset('uploads/products/'.$product->images->first()->image) }}"
                                          alt="{{ $product->name }}"
                                          class="product-image img-fluid">
@@ -524,30 +623,27 @@
                                          alt="No Image"
                                          class="product-image img-fluid">
                                 @endif
-
                             </a>
 
-                            <a href="#" class="btn-icon btn-wishlist">
+                            <a href="#" class="btn-icon btn-wishlist position-absolute top-0 end-0 p-3">
                                 <svg width="24" height="24" viewBox="0 0 24 24">
                                     <use xlink:href="#heart"></use>
                                 </svg>
                             </a>
+                        </div>
 
-                            <div class="product-content">
-                                <h5 class="text-uppercase fs-5 mt-3">
-                                    <a href="{{ route('product.details', $product->uuid) }}">
-                                        {{ $product->name }}
-                                    </a>
-                                </h5>
-
-                                <a href="{{ route('product.details', $product->uuid) }}"
-                                   class="text-decoration-none"
-                                   data-after="Add to cart">
-                                    <span>Rs. {{ number_format($product->price, 2) }}</span>
+                        <div class="product-content">
+                            <h5 class="text-uppercase fs-6 mt-2 mb-1">
+                                <a href="{{ route('product.details', $product->uuid) }}" class="text-dark text-decoration-none fw-semibold">
+                                    {{ $product->name }}
                                 </a>
+                            </h5>
 
-                            </div>
-
+                            <a href="{{ route('product.details', $product->uuid) }}"
+                               class="text-decoration-none text-muted small"
+                               data-after="Add to cart">
+                                <span>Rs. {{ number_format($product->price, 2) }}</span>
+                            </a>
                         </div>
 
                     </div>

@@ -6,3 +6,4 @@
     crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script src="{{asset('users/js/script.min.js')}}"></script>
+<script src="{{ asset('users/js/custom.js') }}"></script>
