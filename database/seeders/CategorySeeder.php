@@ -41,7 +41,7 @@ class CategorySeeder extends Seeder
         ];
 
 
-    
+
 
         foreach($categories as $item)
         {

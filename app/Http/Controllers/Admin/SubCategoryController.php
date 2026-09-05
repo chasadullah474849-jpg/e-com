@@ -127,4 +127,11 @@ class SubCategoryController extends Controller
             ->route('subcategories.index')
             ->with('success', 'Subcategory deleted successfully.');
     }
+    public function show($slug)
+    {
+        // Find subcategory by slug or name
+        $subcategory = Subcategory::where('slug', $slug)->firstOrFail();
+
+        return view('shop.subcategory', compact('subcategory'));
+    }
 }

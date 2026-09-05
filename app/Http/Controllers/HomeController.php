@@ -39,10 +39,11 @@ class HomeController extends Controller
             ->take(10)
             ->get();
 
-         $blogs = Blog::where('status', 1)
-        ->latest()
-        ->take(3)
-        ->get();
+        // Blog status check
+        $blogs = Blog::where('status', 'Active')
+            ->latest()
+            ->take(3)
+            ->get();
 
         return view('home.index', compact(
             'billboard',
@@ -56,46 +57,73 @@ class HomeController extends Controller
         ));
     }
 
+    // --- Public Collections Page & Search ---
+    public function collections(Request $request)
+    {
+        $query = Collection::query();
+
+        if ($request->has('search') && !empty($request->search)) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $collections = $query->paginate(9);
+
+        return view('home.collections', compact('collections'));
+    }
+
+    // --- Single Collection Details Method ---
     public function collectionDetails($uuid)
     {
         $collection = Collection::with('category.subcategories.products.images')
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        $products = $collection->category->subcategories
-            ->flatMap(function ($subcategory) {
-                return $subcategory->products;
-            })
-            ->unique('id');
+        $products = collect();
+        if ($collection->category && $collection->category->subcategories) {
+            $products = $collection->category->subcategories
+                ->flatMap(function ($subcategory) {
+                    return $subcategory->products;
+                })
+                ->unique('id');
+        }
 
+        if ($products->isEmpty() && $collection->category_id) {
+            $products = Product::with('images')
+                ->where('category_id', $collection->category_id)
+                ->where('status', 1)
+                ->get();
+        }
+
+        // Yahan hum wahi 'home.collections' view use kar rahe hain
         return view('home.collections', compact('collection', 'products'));
     }
 
-    public function products()
+    // --- Public Products Page & Search ---
+   public function products(Request $request)
     {
-        $products = Product::with('images')
-            ->where('status', 1)
-            ->latest()
-            ->paginate(12);
+        $query = Product::query();
+
+        // Agar search query ho
+        if ($request->has('search') && !empty($request->search)) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        // Products fetch karein with pagination
+        $products = $query->latest()->paginate(12);
 
         return view('home.products', compact('products'));
     }
 
-    public function productDetails($uuid)
+   public function productDetails($id)
     {
-        $product = Product::with('images')
-            ->where('uuid', $uuid)
-            ->where('status', 1)
-            ->firstOrFail();
-
-        return view('home.product_details', compact('product'));
+        $product = Product::findOrFail($id);
+        return view('home.product-details', compact('product'));
     }
-  public function blogs()
+
+    public function blogs()
     {
         $blogs = Blog::latest()->get();
 
-        // Change to 'admin.blogs.index' if you are using your admin table layout
-        // Or keep 'home.blogs' if you created resources/views/home/blogs.blade.php
         return view('admin.blogs.index', compact('blogs'));
     }
 
@@ -105,49 +133,21 @@ class HomeController extends Controller
 
         return view('home.blog-details', compact('blog'));
     }
+
     public function contact()
     {
         return view('home.contact');
     }
+
     public function sendContactForm(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|max:255',
-        'phone' => 'nullable|string|max:20',
-        'message' => 'required|string',
-    ]);
-
-    // Handle form logic (e.g., send an email or save to DB)
-
-    return back()->with('success', 'Your message has been sent successfully!');
-}
-public function search(Request $request)
     {
-        // Get search keyword from request
-        $searchQuery = $request->input('s') ?? $request->input('query');
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'message' => 'required|string',
+        ]);
 
-        // Fetch dynamic categories
-        $categories = Category::all();
-
-        $products = collect();
-        $blogs = collect();
-
-        if (!empty($searchQuery)) {
-            // Search Products
-            $products = Product::where('name', 'LIKE', "%{$searchQuery}%")
-                ->orWhere('description', 'LIKE', "%{$searchQuery}%")
-                ->get();
-
-            // Search Blogs
-            if (class_exists('App\Models\Blog')) {
-                $blogs = Blog::where('title', 'LIKE', "%{$searchQuery}%")
-                    ->orWhere('content', 'LIKE', "%{$searchQuery}%")
-                    ->get();
-            }
-        }
-
-        // Return the search results view directly
-        return view('search', compact('products', 'categories', 'blogs', 'searchQuery'));
+        return back()->with('success', 'Your message has been sent successfully!');
     }
 }

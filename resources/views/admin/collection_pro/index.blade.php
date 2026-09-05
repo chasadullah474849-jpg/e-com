@@ -38,11 +38,11 @@
                 @include('admin.nav')
 
 
-               
+
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold py-3 mb-0"><span class="text-muted fw-light">Dashboard /</span> Collection Pro List</h4>
-        <a href="{{ route('collection-pro.create') }}" class="btn btn-primary">
+        <a href="{{ route('admin.collection-pro.create') }}" class="btn btn-primary">
             <i class="bx bx-plus me-1"></i> Add New Collection Pro
         </a>
     </div>
@@ -97,10 +97,10 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('collection-pro.edit', $item->id) }}" class="btn btn-sm btn-icon btn-outline-info me-1">
+                                <a href="{{ route('admin.collection-pro.edit', $item->id) }}" class="btn btn-sm btn-icon btn-outline-info me-1">
                                     <i class="bx bx-edit-alt"></i>
                                 </a>
-                                <form action="{{ route('collection-pro.destroy', $item->id) }}" method="POST" class="d-inline">
+                                <form action="{{ route('admin.collection-pro.destroy', $item->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" onclick="return confirm('Are you sure you want to delete this?')">

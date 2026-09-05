@@ -228,6 +228,30 @@ public function replaceImage(Request $request, $id)
 
     return back()->with('success','Image updated successfully.');
 }
+public function showVariety($id)
+    {
+        $variety = Variety::findOrFail($id); // Fetch item by ID/UUID
 
+        return view('varieties.show', compact('variety'));
+    }
+public function allProducts(Request $request)
+    {
+        $query = Product::query();
 
+        // Optional search filter
+        if ($request->has('search') && !empty($request->search)) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        // Fetch paginated products
+        $products = $query->paginate(12);
+
+        return view('home.products', compact('products'));
+    }
+    public function show($id)
+    {
+        $product = Product::findOrFail($id);
+
+        return view('home.product-details', compact('product'));
+    }
 }

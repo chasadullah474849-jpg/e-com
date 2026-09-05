@@ -46,12 +46,12 @@
     <div class="menu-inner-shadow"></div>
 
     <ul class="menu-inner py-1">
-        <li class="menu-item {{ request()->routeIs('admin') ? 'active' : '' }}">
-            <a href="{{ route('admin') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-circle"></i>
-                <div>Dashboard</div>
-            </a>
-        </li>
+       <li class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+    <a href="{{ route('admin.dashboard') }}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-home-circle"></i>
+        <div>Dashboard</div>
+    </a>
+</li>
 
         <li class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
             <a href="{{ route('admin.users.index') }}" class="menu-link">
@@ -113,10 +113,10 @@ Categories
 
 <!-- Single Collection Pro Link -->
 <!-- Collection Pro -->
-<li class="menu-item {{ request()->routeIs('collection-pro.*') ? 'active' : '' }}">
-    <a href="{{ route('collection-pro.index') }}" class="menu-link">
+<li class="menu-item {{ request()->routeIs('admin.collection-pro.*') ? 'active' : '' }}">
+    <a href="{{ route('admin.collection-pro.index') }}" class="menu-link">
         <i class="menu-icon tf-icons bx bx-collection"></i>
-        <div data-i18n="Collection Pro">Collection Pro</div>
+        <div>Collection Pro</div>
     </a>
 </li>
 
