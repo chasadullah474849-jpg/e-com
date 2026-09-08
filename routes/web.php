@@ -68,17 +68,20 @@ Route::get('/search', [HomeController::class, 'search'])
 Route::get('/collections', [HomeController::class, 'collections'])
     ->name('collections');
 
-Route::get('/collection/{uuid}', [HomeController::class, 'collectionDetails'])
-    ->name('collection.details');
+Route::get(
+    '/collection/{uuid}',
+    [HomeController::class, 'collectionDetails']
+)->name('collection.details');
 
 Route::get('/collection-pro/{uuid}', [HomeController::class, 'collectionProDetails'])
     ->name('collection-pro.details');
 
 
 // Categories
-Route::get('/shop/category/{uuid}', [ShopController::class, 'category'])
-    ->name('shop.category');
-
+Route::get(
+    '/shop/category/{uuid}',
+    [ShopController::class, 'category']
+)->name('shop.category');
 
 // Subcategory public page
 Route::get('/subcategory/{slug}', function ($slug) {

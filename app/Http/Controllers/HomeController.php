@@ -115,51 +115,51 @@ class HomeController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function collectionDetails(string $uuid)
-    {
-        $collection = Collection::with([
-                'category.subcategories.products.images',
-            ])
-            ->where('uuid', $uuid)
-            ->firstOrFail();
+   public function collectionDetails(string $uuid)
+{
+    $collection = Collection::with([
+            'category.subcategories.products.images',
+        ])
+        ->where('uuid', $uuid)
+        ->firstOrFail();
 
-        $products = collect();
+    $products = collect();
 
-        if (
-            $collection->category &&
-            $collection->category->subcategories
-        ) {
-            $products = $collection->category
-                ->subcategories
-                ->flatMap(function ($subcategory) {
-                    return $subcategory->products;
-                })
-                ->unique('id')
-                ->values();
-        }
-
-        if (
-            $products->isEmpty() &&
-            !empty($collection->category_id)
-        ) {
-            $products = Product::with([
-                    'images',
-                    'category',
-                    'subcategory',
-                ])
-                ->where(
-                    'category_id',
-                    $collection->category_id
-                )
-                ->latest()
-                ->get();
-        }
-
-        return view('home.collection_details', compact(
-            'collection',
-            'products'
-        ));
+    if (
+        $collection->category &&
+        $collection->category->subcategories
+    ) {
+        $products = $collection->category
+            ->subcategories
+            ->flatMap(function ($subcategory) {
+                return $subcategory->products;
+            })
+            ->unique('id')
+            ->values();
     }
+
+    if (
+        $products->isEmpty() &&
+        !empty($collection->category_id)
+    ) {
+        $products = Product::with([
+                'images',
+                'category',
+                'subcategory',
+            ])
+            ->where(
+                'category_id',
+                $collection->category_id
+            )
+            ->latest()
+            ->get();
+    }
+
+    return view('home.collection-details', compact(
+        'collection',
+        'products'
+    ));
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -241,10 +241,123 @@ class HomeController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function search(Request $request)
-    {
-        return $this->products($request);
+   /*
+|--------------------------------------------------------------------------
+| Global Search
+|--------------------------------------------------------------------------
+*/
+
+public function search(Request $request)
+{
+    $request->validate([
+        'search' => [
+            'nullable',
+            'string',
+            'max:100',
+        ],
+    ]);
+
+    $search = trim((string) $request->input('search'));
+
+    $products = collect();
+    $collections = collect();
+    $categories = collect();
+    $blogs = collect();
+
+    if ($search !== '') {
+        $products = Product::with([
+                'images',
+                'category',
+                'subcategory',
+            ])
+            ->where(function ($query) use ($search) {
+                $query->where(
+                        'name',
+                        'like',
+                        '%' . $search . '%'
+                    )
+                    ->orWhere(
+                        'description',
+                        'like',
+                        '%' . $search . '%'
+                    );
+            })
+            ->latest()
+            ->take(12)
+            ->get();
+
+        $collections = Collection::with('category')
+            ->where(function ($query) use ($search) {
+                $query->where(
+                        'name',
+                        'like',
+                        '%' . $search . '%'
+                    )
+                    ->orWhere(
+                        'description',
+                        'like',
+                        '%' . $search . '%'
+                    );
+            })
+            ->latest()
+            ->take(12)
+            ->get();
+
+        $categories = Category::query()
+            ->where(function ($query) use ($search) {
+                $query->where(
+                        'name',
+                        'like',
+                        '%' . $search . '%'
+                    )
+                    ->orWhere(
+                        'description',
+                        'like',
+                        '%' . $search . '%'
+                    );
+            })
+            ->latest()
+            ->take(12)
+            ->get();
+
+        $blogs = Blog::query()
+            ->where(function ($query) use ($search) {
+                $query->where(
+                        'name',
+                        'like',
+                        '%' . $search . '%'
+                    )
+                    ->orWhere(
+                        'title',
+                        'like',
+                        '%' . $search . '%'
+                    )
+                    ->orWhere(
+                        'description',
+                        'like',
+                        '%' . $search . '%'
+                    );
+            })
+            ->latest()
+            ->take(12)
+            ->get();
     }
+
+    $totalResults =
+        $products->count() +
+        $collections->count() +
+        $categories->count() +
+        $blogs->count();
+
+    return view('home.search-results', compact(
+        'search',
+        'products',
+        'collections',
+        'categories',
+        'blogs',
+        'totalResults'
+    ));
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -252,22 +365,21 @@ class HomeController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function productDetails(string $uuid)
-    {
-        $product = Product::with([
-                'images',
-                'category',
-                'subcategory',
-            ])
-            ->where('uuid', $uuid)
-            ->firstOrFail();
+   public function productDetails(string $uuid)
+{
+    $product = Product::with([
+            'images',
+            'category',
+            'subcategory',
+        ])
+        ->where('uuid', $uuid)
+        ->firstOrFail();
 
-        return view(
-            'home.product_details',
-            compact('product')
-        );
-    }
-
+    return view(
+        'home.product_details',
+        compact('product')
+    );
+}
     /*
     |--------------------------------------------------------------------------
     | All Blogs

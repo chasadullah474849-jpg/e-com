@@ -7,16 +7,28 @@ use App\Models\Product;
 
 class ShopController extends Controller
 {
-  public function category($uuid)
+  public function category(string $uuid)
 {
-    $category = Category::where('uuid', $uuid)
+    $category = Category::query()
+        ->where(function ($query) use ($uuid) {
+            $query->where('uuid', $uuid);
+
+            if (ctype_digit($uuid)) {
+                $query->orWhere('id', (int) $uuid);
+            }
+        })
         ->firstOrFail();
 
-    $products = Product::with('images')
+    $products = Product::with([
+            'images',
+            'category',
+            'subcategory',
+        ])
         ->where('category_id', $category->id)
-        ->get();
+        ->latest()
+        ->paginate(12);
 
-    return view('shop.category', compact(
+    return view('home.category-products', compact(
         'category',
         'products'
     ));

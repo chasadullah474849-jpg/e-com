@@ -16,7 +16,7 @@
     >
 
     <title>
-        {{ $collection->name ?? 'Collection' }} | Kaira
+        {{ $category->name ?? 'Category' }} | Kaira
     </title>
 
     <link
@@ -59,6 +59,7 @@
 
         .main-navbar .nav-link {
             position: relative;
+            display: inline-block;
             margin: 0 12px;
             padding: 8px 0;
             color: #333333;
@@ -114,57 +115,136 @@
 
         /*
         |--------------------------------------------------------------------------
-        | Collection Hero
+        | Page Header
         |--------------------------------------------------------------------------
         */
 
-        .collection-hero {
-            padding: 60px 0 80px;
+        .category-header {
+            padding: 70px 0;
+            background-color: #f7f7f7;
+            text-align: center;
         }
 
-        .collection-hero-image {
-            width: 100%;
-            height: 600px;
-            object-fit: cover;
-            background-color: #f4f4f4;
-        }
-
-        .collection-info {
-            padding: 45px;
-        }
-
-        .collection-info h1 {
-            margin-bottom: 25px;
-            font-family: Georgia, serif;
-            font-size: 52px;
-            font-weight: 400;
-            line-height: 1.15;
+        .category-label {
+            display: block;
+            margin-bottom: 15px;
+            color: #888888;
+            font-size: 13px;
+            letter-spacing: 4px;
             text-transform: uppercase;
         }
 
-        .collection-info p {
+        .category-title {
+            margin: 0;
+            font-family: Georgia, serif;
+            font-size: 52px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        .category-description {
+            max-width: 650px;
+            margin: 20px auto 0;
             color: #777777;
             font-size: 17px;
             line-height: 1.8;
         }
 
-        .category-label {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #888888;
-            font-size: 13px;
-            letter-spacing: 3px;
+        /*
+        |--------------------------------------------------------------------------
+        | Products
+        |--------------------------------------------------------------------------
+        */
+
+        .products-section {
+            padding: 80px 0;
+        }
+
+        .product-card {
+            display: block;
+            height: 100%;
+            color: #111111;
+            text-decoration: none;
+        }
+
+        .product-image-wrapper {
+            position: relative;
+            overflow: hidden;
+            background-color: #f4f4ff4;
+        }
+
+        .product-image {
+            display: block;
+            width: 100%;
+            height: 420px;
+            object-fit: cover;
+            background-color: #f4f4f4;
+            transition: transform 0.5s ease;
+        }
+
+        .product-card:hover .product-image {
+            transform: scale(1.05);
+        }
+
+        .product-content {
+            padding: 18px 2px 25px;
+        }
+
+        .product-category {
+            margin-bottom: 8px;
+            color: #999999;
+            font-size: 12px;
+            letter-spacing: 2px;
             text-transform: uppercase;
+        }
+
+        .product-name {
+            margin-bottom: 9px;
+            font-family: Georgia, serif;
+            font-size: 21px;
+            line-height: 1.4;
+        }
+
+        .product-price {
+            color: #555555;
+            font-size: 17px;
+        }
+
+        .product-stock {
+            margin-top: 8px;
+            color: #777777;
+            font-size: 13px;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Empty Products
+        |--------------------------------------------------------------------------
+        */
+
+        .empty-products {
+            padding: 80px 20px;
+            background-color: #f8f8f8;
+            text-align: center;
+        }
+
+        .empty-products h3 {
+            font-family: Georgia, serif;
+            font-size: 38px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        .empty-products p {
+            color: #777777;
         }
 
         .back-btn {
             display: inline-block;
-            margin-top: 25px;
-            padding: 13px 25px;
+            margin-top: 20px;
+            padding: 12px 24px;
             border: 1px solid #111111;
             color: #111111;
-            font-size: 14px;
-            letter-spacing: 1px;
             text-decoration: none;
             text-transform: uppercase;
             transition: 0.3s;
@@ -177,62 +257,24 @@
 
         /*
         |--------------------------------------------------------------------------
-        | Coming Soon
+        | Pagination
         |--------------------------------------------------------------------------
         */
 
-        .coming-soon-section {
-            padding: 100px 20px;
-            background-color: #f8f8f8;
-            text-align: center;
+        .pagination {
+            justify-content: center;
+            margin-top: 40px;
         }
 
-        .coming-soon-label {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #888888;
-            font-size: 13px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
+        .pagination .page-link {
+            border-color: #dddddd;
+            color: #111111;
         }
 
-        .coming-soon-title {
-            margin-bottom: 25px;
-            font-family: Georgia, serif;
-            font-size: 52px;
-            font-weight: 400;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .coming-soon-description {
-            max-width: 620px;
-            margin: 0 auto;
-            color: #777777;
-            font-size: 17px;
-            line-height: 1.8;
-        }
-
-        .coming-soon-line {
-            width: 80px;
-            height: 1px;
-            margin: 35px auto 0;
+        .pagination .page-item.active .page-link {
+            border-color: #111111;
             background-color: #111111;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Footer
-        |--------------------------------------------------------------------------
-        */
-
-        .footer {
-            padding: 30px 0;
-            border-top: 1px solid #eeeeee;
-            background-color: #ffffff;
-            color: #777777;
-            font-size: 14px;
-            text-align: center;
+            color: #ffffff;
         }
 
         /*
@@ -248,7 +290,6 @@
             }
 
             .main-navbar .nav-link {
-                display: inline-block;
                 margin: 5px 0;
             }
 
@@ -256,44 +297,28 @@
                 margin-top: 15px;
             }
 
-            .collection-info {
-                padding: 30px 10px;
+            .product-image {
+                height: 380px;
             }
 
         }
 
         @media (max-width: 768px) {
 
-            .collection-hero {
-                padding: 40px 0 60px;
+            .category-header {
+                padding: 50px 15px;
             }
 
-            .collection-hero-image {
-                height: 450px;
-            }
-
-            .collection-info h1 {
+            .category-title {
                 font-size: 38px;
             }
 
-            .coming-soon-section {
-                padding: 70px 20px;
+            .products-section {
+                padding: 55px 0;
             }
 
-            .coming-soon-title {
-                font-size: 38px;
-            }
-
-        }
-
-        @media (max-width: 576px) {
-
-            .navbar-brand {
-                font-size: 24px;
-            }
-
-            .collection-hero-image {
-                height: 380px;
+            .product-image {
+                height: 350px;
             }
 
         }
@@ -306,25 +331,25 @@
 
     @php
         /*
-         * Supports these image formats:
+         * Supports:
          *
          * image.jpg
-         * collections/image.jpg
-         * uploads/collections/image.jpg
-         * storage/collections/image.jpg
-         * public/collections/image.jpg
-         * Full external URL
+         * products/image.jpg
+         * uploads/products/image.jpg
+         * storage/products/image.jpg
+         * public/products/image.jpg
+         * External image URL
          */
         $resolveImage = function (
             $image,
             array $possibleFolders = []
         ) {
-            $fallbackImage = asset(
+            $fallback = asset(
                 'users/images/no-image.png'
             );
 
             if (empty($image)) {
-                return $fallbackImage;
+                return $fallback;
             }
 
             $image = ltrim(
@@ -372,28 +397,8 @@
                 }
             }
 
-            return $fallbackImage;
+            return $fallback;
         };
-
-        $collectionImageUrl = $resolveImage(
-            $collection->image ?? null,
-            [
-                'uploads/collections',
-                'storage/collections',
-            ]
-        );
-
-        $categoryImageUrl = $resolveImage(
-            optional($collection->category)->image,
-            [
-                'uploads/categories',
-                'storage/categories',
-            ]
-        );
-
-        $heroImageUrl = !empty($collection->image)
-            ? $collectionImageUrl
-            : $categoryImageUrl;
     @endphp
 
 
@@ -442,7 +447,7 @@
 
                     <li class="nav-item">
                         <a
-                            class="nav-link"
+                            class="nav-link active"
                             href="{{ route('productss') }}"
                         >
                             Products
@@ -451,7 +456,7 @@
 
                     <li class="nav-item">
                         <a
-                            class="nav-link active"
+                            class="nav-link"
                             href="{{ route('collections') }}"
                         >
                             Collections
@@ -493,113 +498,161 @@
 
 
     {{-- ====================================================== --}}
-    {{-- COLLECTION HERO --}}
+    {{-- CATEGORY HEADER --}}
     {{-- ====================================================== --}}
 
-    <section class="collection-hero">
+    <section class="category-header">
 
         <div class="container">
 
-            <div class="row align-items-center g-5">
+            <span class="category-label">
+                Shop Collection
+            </span>
 
-                {{-- Collection Image --}}
-                <div class="col-lg-7">
+            <h1 class="category-title">
+                {{ $category->name }}
+            </h1>
 
-                    <img
-                        src="{{ $heroImageUrl }}"
-                        alt="{{ $collection->name ?? 'Collection image' }}"
-                        class="collection-hero-image"
-                        onerror="this.onerror=null; this.src='{{ asset('users/images/no-image.png') }}';"
-                    >
+            @if(!empty($category->description))
 
-                </div>
+                <p class="category-description">
+                    {{ $category->description }}
+                </p>
+
+            @endif
+
+        </div>
+
+    </section>
 
 
-                {{-- Collection Information --}}
-                <div class="col-lg-5">
+    {{-- ====================================================== --}}
+    {{-- PRODUCTS --}}
+    {{-- ====================================================== --}}
 
-                    @if($collection->category)
+    <section class="products-section">
 
-                        <span class="category-label">
-                            {{ $collection->category->name }}
-                        </span>
+        <div class="container">
 
-                    @endif
+            <div class="row g-4">
 
-                    <h1>
-                        {{ $collection->name }}
-                    </h1>
+                @forelse($products as $product)
 
-                    @if(!empty($collection->description))
+                    @php
+                        $firstImage = $product->images->first();
 
-                        <p>
-                            {{ $collection->description }}
-                        </p>
+                        /*
+                         * Some product tables also have an
+                         * image column, so use it as fallback.
+                         */
+                        $storedProductImage =
+                            optional($firstImage)->image
+                            ?? $product->image
+                            ?? null;
 
-                    @endif
+                        $productImageUrl = $resolveImage(
+                            $storedProductImage,
+                            [
+                                'uploads/products',
+                                'storage/products',
+                            ]
+                        );
+                    @endphp
 
-                    <a
-                        href="{{ route('home') }}"
-                        class="back-btn"
-                    >
-                        ← Back to Home
-                    </a>
+                    <div class="col-lg-3 col-md-4 col-sm-6">
 
-                </div>
+                        <a
+                            href="{{ route(
+                                'product.details',
+                                ['uuid' => $product->uuid]
+                            ) }}"
+                            class="product-card"
+                        >
+
+                            <div class="product-image-wrapper">
+
+                                <img
+                                    src="{{ $productImageUrl }}"
+                                    alt="{{ $product->name }}"
+                                    class="product-image"
+                                    onerror="this.onerror=null; this.src='{{ asset('users/images/no-image.png') }}';"
+                                >
+
+                            </div>
+
+                            <div class="product-content">
+
+                                <div class="product-category">
+                                    {{ $category->name }}
+                                </div>
+
+                                <div class="product-name">
+                                    {{ $product->name }}
+                                </div>
+
+                                <div class="product-price">
+                                    Rs. {{ number_format($product->price, 2) }}
+                                </div>
+
+                                @if(isset($product->stock))
+
+                                    <div class="product-stock">
+                                        @if($product->stock > 0)
+                                            In Stock
+                                        @else
+                                            Out of Stock
+                                        @endif
+                                    </div>
+
+                                @endif
+
+                            </div>
+
+                        </a>
+
+                    </div>
+
+                @empty
+
+                    <div class="col-12">
+
+                        <div class="empty-products">
+
+                            <h3>
+                                Products Coming Soon
+                            </h3>
+
+                            <p>
+                                New products will be available in this
+                                category soon.
+                            </p>
+
+                            <a
+                                href="{{ route('home') }}"
+                                class="back-btn"
+                            >
+                                Back to Home
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                @endforelse
 
             </div>
 
-        </div>
+            @if($products->hasPages())
 
-    </section>
+                <div class="mt-4">
+                    {{ $products->links() }}
+                </div>
 
-
-    {{-- ====================================================== --}}
-    {{-- COMING SOON --}}
-    {{-- ====================================================== --}}
-
-    <section class="coming-soon-section">
-
-        <div class="container">
-
-            <span class="coming-soon-label">
-                New Collection
-            </span>
-
-            <h2 class="coming-soon-title">
-                Products Coming Soon
-            </h2>
-
-            <p class="coming-soon-description">
-                We are preparing something special for you.
-                New products from the
-                {{ $collection->name }}
-                collection will be available soon.
-            </p>
-
-            <div class="coming-soon-line"></div>
+            @endif
 
         </div>
 
     </section>
-
-
-    {{-- ====================================================== --}}
-    {{-- FOOTER --}}
-    {{-- ====================================================== --}}
-
-    <footer class="footer">
-
-        <div class="container">
-
-            <p class="mb-0">
-                &copy; {{ date('Y') }} Kaira.
-                All rights reserved.
-            </p>
-
-        </div>
-
-    </footer>
 
 
     <script
