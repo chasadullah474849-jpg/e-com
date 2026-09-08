@@ -123,7 +123,7 @@ Showing {{ $products->total() }} Products
 
 <div class="row">
 
-@foreach($products as $product)
+@forelse($products as $product)
 
 <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6 col-12">
 
@@ -162,7 +162,7 @@ Rs {{ number_format($product->price,2) }}
 
 </div>
 
-<a href="{{ route('product.details',$product->uuid) }}"
+<a href="{{ route('product.details', $product->id) }}"
 class="btn btn-dark details-btn">
 
 View Details
@@ -175,7 +175,13 @@ View Details
 
 </div>
 
-@endforeach
+@empty
+
+<div class="col-12 text-center py-5">
+    <h4>No Products Available</h4>
+</div>
+
+@endforelse
 
 </div>
 
@@ -193,11 +199,6 @@ View Details
 
 @include('home.js')
 
-
-
-
 </body>
-
-
 
 </html>

@@ -416,7 +416,7 @@
 
         <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3">
             <h4 class="text-uppercase fw-bold m-0">Our New Arrivals</h4>
-            <a href="{{ route('products') }}" class="btn-link text-decoration-none fw-bold">
+            <a href="{{ route('productss') }}" class="btn-link text-decoration-none fw-bold">
                 View All Products
             </a>
         </div>
@@ -512,10 +512,10 @@
 
                         <p class="text-secondary mb-4">{{ $collectionPro->description }}</p>
 
-                        <a href="{{ $collectionPro->button_link ?? route('products') }}"
-                           class="btn btn-dark text-uppercase px-4 py-2">
-                            Shop Collection
-                        </a>
+                    <a href="{{ Route::has('collections') ? route('collections') : url('/collections') }}"
+   class="btn btn-dark text-uppercase px-4 py-2 {{ request()->is('collections*') ? 'active' : '' }}">
+    Shop Collection
+</a>
                     </div>
                 </div>
             </div>
@@ -582,7 +582,7 @@
                             Discover our latest winter arrivals designed for elegance and ultimate comfort. Explore premium outerwear, cozy knits, and seasonal essentials.
                         </p>
 
-                        <a href="{{ route('products') }}"
+                        <a href="{{ route('productss') }}"
                            class="btn btn-dark text-uppercase px-4 py-2">
                             Shop Collection
                         </a>
@@ -600,7 +600,7 @@
 
         <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3">
             <h4 class="text-uppercase fw-bold m-0">Best Selling Items</h4>
-            <a href="{{ route('products') }}" class="btn-link text-decoration-none fw-bold">
+            <a href="{{ route('productss') }}" class="btn-link text-decoration-none fw-bold">
                 View All Products
             </a>
         </div>
@@ -738,7 +738,7 @@
 
         <div class="d-flex flex-wrap justify-content-between align-items-center mt-5 mb-3">
             <h4 class="text-uppercase">You May Also Like</h4>
-<a href="{{ route('products') }}" class="btn-link">
+<a href="{{ route('productss') }}" class="btn-link">
     View All Products
 </a>        </div>
 
@@ -812,7 +812,7 @@
     </div>
 </section>
 
- <section class="blog py-5">
+<section class="blog py-5">
     <div class="container">
 
         {{-- Section Header --}}

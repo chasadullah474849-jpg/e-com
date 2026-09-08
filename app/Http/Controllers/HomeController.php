@@ -2,45 +2,66 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Billboard;
-use App\Models\Feature;
+use App\Models\Blog;
+use App\Models\Category;
 use App\Models\Collection;
 use App\Models\CollectionPro;
-use App\Models\Category;
+use App\Models\Feature;
 use App\Models\Product;
-use App\Models\Blog;
+use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Home Page
+    |--------------------------------------------------------------------------
+    */
+
     public function index()
     {
-        // Active Billboard
-        $billboard = Billboard::where('status', 1)->first();
+        $billboard = Billboard::where('status', 1)
+            ->first();
 
-        // Active Features
-        $features = Feature::where('status', 1)->latest()->take(4)->get();
+        $features = Feature::where('status', 1)
+            ->latest()
+            ->take(4)
+            ->get();
 
-        // Active Collections (Multiple Images/Items)
-        $collections = Collection::where('status', 'active')->latest()->get();
+        $collections = Collection::query()
+            ->whereRaw('LOWER(status) = ?', ['active'])
+            ->latest()
+            ->get();
 
-        // Single Latest Collection for Hero Banner Section
-        $collectionss = Collection::where('status', 'active')->latest()->first();
+        $collectionss = Collection::query()
+            ->whereRaw('LOWER(status) = ?', ['active'])
+            ->latest()
+            ->first();
 
-        // Single Classic Winter / Featured Item (Collection Pro)
-        $collectionPro = CollectionPro::where('status', 1)->latest()->first();
+        $collectionPro = CollectionPro::where('status', 1)
+            ->latest()
+            ->first();
 
-        // Active Categories
-        $categories = Category::where('status', 'active')->latest()->get();
+        $categories = Category::query()
+            ->whereRaw('LOWER(status) = ?', ['active'])
+            ->latest()
+            ->get();
 
-        // Latest Products
-        $products = Product::with(['images', 'category', 'subcategory'])
+        $products = Product::with([
+                'images',
+                'category',
+                'subcategory',
+            ])
             ->latest()
             ->take(10)
             ->get();
 
-        // Blog status check
-        $blogs = Blog::where('status', 'Active')
+        $blogs = Blog::query()
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(status) = ?', ['active'])
+                    ->orWhere('status', 1);
+            })
             ->latest()
             ->take(3)
             ->get();
@@ -57,97 +78,297 @@ class HomeController extends Controller
         ));
     }
 
-    // --- Public Collections Page & Search ---
+    /*
+    |--------------------------------------------------------------------------
+    | All Collections
+    |--------------------------------------------------------------------------
+    */
+
     public function collections(Request $request)
     {
         $query = Collection::query();
 
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(
+                'name',
+                'like',
+                '%' . $search . '%'
+            );
         }
 
-        $collections = $query->paginate(9);
+        $collections = $query
+            ->latest()
+            ->paginate(9)
+            ->withQueryString();
 
-        return view('home.collections', compact('collections'));
+        return view(
+            'home.collections',
+            compact('collections')
+        );
     }
 
-    // --- Single Collection Details Method ---
-    public function collectionDetails($uuid)
+    /*
+    |--------------------------------------------------------------------------
+    | Collection Details
+    |--------------------------------------------------------------------------
+    */
+
+    public function collectionDetails(string $uuid)
     {
-        $collection = Collection::with('category.subcategories.products.images')
+        $collection = Collection::with([
+                'category.subcategories.products.images',
+            ])
             ->where('uuid', $uuid)
             ->firstOrFail();
 
         $products = collect();
-        if ($collection->category && $collection->category->subcategories) {
-            $products = $collection->category->subcategories
+
+        if (
+            $collection->category &&
+            $collection->category->subcategories
+        ) {
+            $products = $collection->category
+                ->subcategories
                 ->flatMap(function ($subcategory) {
                     return $subcategory->products;
                 })
-                ->unique('id');
+                ->unique('id')
+                ->values();
         }
 
-        if ($products->isEmpty() && $collection->category_id) {
-            $products = Product::with('images')
-                ->where('category_id', $collection->category_id)
-                ->where('status', 1)
+        if (
+            $products->isEmpty() &&
+            !empty($collection->category_id)
+        ) {
+            $products = Product::with([
+                    'images',
+                    'category',
+                    'subcategory',
+                ])
+                ->where(
+                    'category_id',
+                    $collection->category_id
+                )
+                ->latest()
                 ->get();
         }
 
-        // Yahan hum wahi 'home.collections' view use kar rahe hain
-        return view('home.collections', compact('collection', 'products'));
+        return view('home.collection_details', compact(
+            'collection',
+            'products'
+        ));
     }
 
-    // --- Public Products Page & Search ---
-   public function products(Request $request)
-    {
-        $query = Product::query();
+    /*
+    |--------------------------------------------------------------------------
+    | Collection Pro Details
+    |--------------------------------------------------------------------------
+    */
 
-        // Agar search query ho
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+    public function collectionProDetails(string $uuid)
+    {
+        $collectionPro = CollectionPro::where('uuid', $uuid)
+            ->firstOrFail();
+
+        return view(
+            'home.collection-pro-details',
+            compact('collectionPro')
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Products Page
+    |--------------------------------------------------------------------------
+    */
+
+    public function products(Request $request)
+    {
+        $query = Product::with([
+            'images',
+            'category',
+            'subcategory',
+        ]);
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($productQuery) use ($search) {
+                $productQuery
+                    ->where(
+                        'name',
+                        'like',
+                        '%' . $search . '%'
+                    )
+                    ->orWhere(
+                        'description',
+                        'like',
+                        '%' . $search . '%'
+                    );
+            });
         }
 
-        // Products fetch karein with pagination
-        $products = $query->latest()->paginate(12);
+        if ($request->filled('category')) {
+            $categoryName = trim($request->category);
 
-        return view('home.products', compact('products'));
+            $query->whereHas(
+                'category',
+                function ($categoryQuery) use ($categoryName) {
+                    $categoryQuery->where(
+                        'name',
+                        $categoryName
+                    );
+                }
+            );
+        }
+
+        $products = $query
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
+
+        return view(
+            'home.products',
+            compact('products')
+        );
     }
 
-   public function productDetails($id)
+    /*
+    |--------------------------------------------------------------------------
+    | Product Search
+    |--------------------------------------------------------------------------
+    */
+
+    public function search(Request $request)
     {
-        $product = Product::findOrFail($id);
-        return view('home.product-details', compact('product'));
+        return $this->products($request);
     }
 
-    public function blogs()
+    /*
+    |--------------------------------------------------------------------------
+    | Product Details
+    |--------------------------------------------------------------------------
+    */
+
+    public function productDetails(string $uuid)
     {
-        $blogs = Blog::latest()->get();
+        $product = Product::with([
+                'images',
+                'category',
+                'subcategory',
+            ])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
-        return view('admin.blogs.index', compact('blogs'));
+        return view(
+            'home.product_details',
+            compact('product')
+        );
     }
 
-    public function blogDetails($uuid)
-    {
-        $blog = Blog::where('uuid', $uuid)->firstOrFail();
+    /*
+    |--------------------------------------------------------------------------
+    | All Blogs
+    |--------------------------------------------------------------------------
+    */
 
-        return view('home.blog-details', compact('blog'));
+  public function blogs(Request $request)
+{
+    $query = Blog::query()
+        ->where(function ($query) {
+            $query->whereRaw('LOWER(status) = ?', ['active'])
+                ->orWhere('status', 1);
+        });
+
+    if ($request->filled('search')) {
+        $search = trim($request->search);
+
+        $query->where(function ($query) use ($search) {
+            $query->where('title', 'like', "%{$search}%")
+                ->orWhere('name', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%");
+        });
     }
+
+    $blogs = $query
+        ->latest()
+        ->paginate(9)
+        ->withQueryString();
+
+    return view('home.blogs', compact('blogs'));
+}
+    /*
+    |--------------------------------------------------------------------------
+    | Blog Details — Supports UUID and Numeric ID
+    |--------------------------------------------------------------------------
+    */
+
+    /*
+|--------------------------------------------------------------------------
+| Blog Details — Supports UUID and Numeric ID
+|--------------------------------------------------------------------------
+*/
+
+public function blogDetails(string $identifier)
+{
+    $blog = Blog::query()
+        ->where(function ($query) use ($identifier) {
+            $query->where('uuid', $identifier);
+
+            if (ctype_digit($identifier)) {
+                $query->orWhere('id', (int) $identifier);
+            }
+        })
+        ->firstOrFail();
+
+    return view('home.blog_details', compact('blog'));
+}
+    /*
+    |--------------------------------------------------------------------------
+    | Contact Page
+    |--------------------------------------------------------------------------
+    */
 
     public function contact()
     {
         return view('home.contact');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contact Form
+    |--------------------------------------------------------------------------
+    */
+
     public function sendContactForm(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'message' => 'required|string',
+        $validatedData = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+            ],
+            'phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'message' => [
+                'required',
+                'string',
+            ],
         ]);
 
-        return back()->with('success', 'Your message has been sent successfully!');
+        return back()->with(
+            'success',
+            'Your message has been sent successfully!'
+        );
     }
 }
