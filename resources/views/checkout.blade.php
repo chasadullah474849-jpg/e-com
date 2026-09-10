@@ -235,7 +235,34 @@
             border-radius: 7px;
             padding: 14px;
             border: 1px solid #b8e8f8;
+            margin-bottom: 12px;
+            transition: border-color .2s, background .2s, box-shadow .2s;
         }
+
+        .payment-box.selected {
+            border-color: #0d6efd;
+            background: #eef6ff;
+            box-shadow: 0 0 0 3px rgba(13,110,253,.08);
+        }
+
+        .card-payment-panel {
+            display: none;
+            margin-top: 14px;
+            padding: 18px;
+            border: 1px solid #e0e5eb;
+            border-radius: 10px;
+            background: linear-gradient(145deg,#fff,#f7f9fc);
+        }
+
+        .card-payment-panel.show { display: block; animation: cardOpen .22s ease; }
+        @keyframes cardOpen { from {opacity:0;transform:translateY(-6px)} to {opacity:1;transform:none} }
+        .card-number-wrap { position: relative; }
+        .card-number-wrap .form-control { padding-right: 72px; }
+        .card-brand { position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:#0d6efd;letter-spacing:.5px; }
+        .accepted-cards { display:flex;gap:7px;align-items:center;color:#667085;font-size:12px; }
+        .accepted-cards i { font-size:25px;color:#344054; }
+        .secure-note { display:flex;gap:7px;align-items:flex-start;margin-top:12px;color:#667085;font-size:11px; }
+        .secure-note i { color:#198754;font-size:14px; }
 
         .payment-box label {
             cursor: pointer;
@@ -677,7 +704,7 @@
                                 id="cod"
                                 name="payment_method"
                                 value="cash_on_delivery"
-                                checked
+                                {{ old('payment_method', 'cash_on_delivery') === 'cash_on_delivery' ? 'checked' : '' }}
                             >
 
                             <div>
@@ -695,6 +722,51 @@
 
                         </label>
 
+                    </div>
+
+                    <div class="payment-box" id="cardPaymentBox">
+                        <label for="credit_card" class="d-flex align-items-start gap-2">
+                            <input type="radio" id="credit_card" name="payment_method" value="credit_debit_card" {{ old('payment_method') === 'credit_debit_card' ? 'checked' : '' }}>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <div class="payment-title">Credit or Debit Card</div>
+                                    <div class="accepted-cards" aria-label="Accepted cards">
+                                        <i class="bi bi-credit-card-2-front-fill"></i>
+                                        <span>VISA · Mastercard</span>
+                                    </div>
+                                </div>
+                                <div class="payment-description">Enter your card details securely to pay online.</div>
+                            </div>
+                        </label>
+
+                        <div class="card-payment-panel" id="cardPaymentPanel" aria-hidden="true">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="card_holder">Name on Card</label>
+                                    <input type="text" id="card_holder" name="card_holder" class="form-control" value="{{ old('card_holder') }}" placeholder="Asad Arif" autocomplete="cc-name" maxlength="80">
+                                    <div class="invalid-feedback">Enter the cardholder name.</div>
+                                </div>
+                                <div class="col-12">
+                                    <label for="card_number">Card Number</label>
+                                    <div class="card-number-wrap">
+                                        <input type="text" id="card_number" name="card_number" class="form-control" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19">
+                                        <span class="card-brand" id="cardBrand">CARD</span>
+                                        <div class="invalid-feedback">Enter a valid card number.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="card_expiry">Expiry Date</label>
+                                    <input type="text" id="card_expiry" name="card_expiry" class="form-control" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" maxlength="5">
+                                    <div class="invalid-feedback">Enter a valid future expiry date.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="card_cvv">CVV</label>
+                                    <input type="password" id="card_cvv" name="card_cvv" class="form-control" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4">
+                                    <div class="invalid-feedback">Enter a valid 3 or 4 digit CVV.</div>
+                                </div>
+                            </div>
+                            <div class="secure-note"><i class="bi bi-shield-lock-fill"></i><span>Demo card form. Connect a PCI-compliant payment gateway before accepting real card details.</span></div>
+                        </div>
                     </div>
 
                 </div>
@@ -914,9 +986,58 @@
 
 <script>
 
-    document
-        .getElementById('checkoutForm')
-        .addEventListener('submit', function () {
+    const checkoutForm = document.getElementById('checkoutForm');
+    const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+    const cardPanel = document.getElementById('cardPaymentPanel');
+    const cardHolder = document.getElementById('card_holder');
+    const cardNumber = document.getElementById('card_number');
+    const cardExpiry = document.getElementById('card_expiry');
+    const cardCvv = document.getElementById('card_cvv');
+    const cardBrand = document.getElementById('cardBrand');
+
+    function cardSelected() { return document.getElementById('credit_card').checked; }
+    function updatePaymentUI() {
+        document.querySelectorAll('.payment-box').forEach(box => box.classList.remove('selected'));
+        const checked = document.querySelector('input[name="payment_method"]:checked');
+        if (checked) checked.closest('.payment-box').classList.add('selected');
+        cardPanel.classList.toggle('show', cardSelected());
+        cardPanel.setAttribute('aria-hidden', cardSelected() ? 'false' : 'true');
+        [cardHolder, cardNumber, cardExpiry, cardCvv].forEach(field => field.required = cardSelected());
+    }
+    paymentRadios.forEach(radio => radio.addEventListener('change', updatePaymentUI));
+    updatePaymentUI();
+
+    cardNumber.addEventListener('input', function () {
+        const digits = this.value.replace(/\D/g, '').slice(0, 16);
+        this.value = digits.replace(/(.{4})/g, '$1 ').trim();
+        cardBrand.textContent = digits.startsWith('4') ? 'VISA' : /^5[1-5]/.test(digits) ? 'MC' : 'CARD';
+        this.classList.remove('is-invalid');
+    });
+    cardExpiry.addEventListener('input', function () {
+        const digits = this.value.replace(/\D/g, '').slice(0, 4);
+        this.value = digits.length > 2 ? digits.slice(0,2) + '/' + digits.slice(2) : digits;
+        this.classList.remove('is-invalid');
+    });
+    cardCvv.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0,4);this.classList.remove('is-invalid'); });
+
+    function luhn(number) {
+        let sum=0,doubleDigit=false;
+        for(let i=number.length-1;i>=0;i--){let digit=Number(number[i]);if(doubleDigit){digit*=2;if(digit>9)digit-=9}sum+=digit;doubleDigit=!doubleDigit}
+        return number.length>=13 && number.length<=16 && sum%10===0;
+    }
+    function validExpiry(value) {
+        const match=value.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);if(!match)return false;
+        const expiry=new Date(2000+Number(match[2]),Number(match[1]),0,23,59,59);return expiry>=new Date();
+    }
+    function validateCard() {
+        if(!cardSelected())return true;
+        const tests=[[cardHolder,cardHolder.value.trim().length>=2],[cardNumber,luhn(cardNumber.value.replace(/\D/g,''))],[cardExpiry,validExpiry(cardExpiry.value)],[cardCvv,/^\d{3,4}$/.test(cardCvv.value)]];
+        tests.forEach(([field,valid])=>field.classList.toggle('is-invalid',!valid));
+        return tests.every(([,valid])=>valid);
+    }
+
+    checkoutForm.addEventListener('submit', function (event) {
+            if (!validateCard()) { event.preventDefault();cardPanel.scrollIntoView({behavior:'smooth',block:'center'});return; }
 
             const button =
                 document.getElementById('placeOrderButton');

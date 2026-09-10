@@ -5,6 +5,7 @@ use App\Models\ProductImage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\StripePayment;
 
 
 class Product extends Model
@@ -73,5 +74,10 @@ class Product extends Model
     public function images()
 {
     return $this->hasMany(ProductImage::class, 'product_id');
+}
+
+public function stripePayments()
+{
+    return $this->hasMany(StripePayment::class);
 }
 }

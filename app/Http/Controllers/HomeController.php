@@ -365,20 +365,87 @@ public function search(Request $request)
     |--------------------------------------------------------------------------
     */
 
-   public function productDetails(string $uuid)
+   public function productDetails(string $identifier)
 {
-    $product = Product::with([
-            'images',
+    /*
+    |--------------------------------------------------------------------------
+    | Find product using UUID or old numeric ID
+    |--------------------------------------------------------------------------
+    */
+
+    $product = Product::query()
+        ->with([
             'category',
             'subcategory',
+            'images',
         ])
-        ->where('uuid', $uuid)
+        ->where(function ($query) use ($identifier) {
+            $query->where('uuid', $identifier);
+
+            if (ctype_digit($identifier)) {
+                $query->orWhere('id', (int) $identifier);
+            }
+        })
         ->firstOrFail();
 
-    return view(
-        'home.product_details',
-        compact('product')
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | Generate UUID if an old product does not have one
+    |--------------------------------------------------------------------------
+    */
+
+    if (empty($product->uuid)) {
+        $product->uuid = (string) \Illuminate\Support\Str::uuid();
+        $product->save();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Redirect numeric URL to correct UUID URL
+    |--------------------------------------------------------------------------
+    |
+    | /product-details/20
+    | becomes:
+    | /product-details/product-uuid
+    */
+
+    if (ctype_digit($identifier)) {
+        return redirect()->route(
+            'product.details',
+            ['identifier' => $product->uuid]
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Related products
+    |--------------------------------------------------------------------------
+    */
+
+    $relatedProducts = Product::query()
+        ->with([
+            'category',
+            'images',
+        ])
+        ->where('id', '!=', $product->id)
+        ->when(
+            $product->category_id,
+            function ($query) use ($product) {
+                $query->where(
+                    'category_id',
+                    $product->category_id
+                );
+            }
+        )
+        ->whereNotNull('uuid')
+        ->latest()
+        ->take(4)
+        ->get();
+
+    return view('home.product_details', [
+        'product' => $product,
+        'relatedProducts' => $relatedProducts,
+    ]);
 }
     /*
     |--------------------------------------------------------------------------

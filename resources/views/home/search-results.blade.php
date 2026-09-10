@@ -561,11 +561,14 @@
 
                                 <div class="col-lg-3 col-md-4 col-sm-6">
 
-                                    <a
-                                        href="{{ route(
-                                            'product.details',
-                                            ['uuid' => $product->uuid]
-                                        ) }}"
+                                <a
+                                    href="{{ route(
+                                        'product.details',
+                                        [
+                                            'identifier' =>
+                                                $product->uuid ?: $product->id
+                                        ]
+                                    ) }}"
                                         class="result-card"
                                     >
 

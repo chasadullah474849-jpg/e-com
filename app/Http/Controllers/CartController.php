@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\CartActivity;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,48 +11,63 @@ class CartController extends Controller
     /**
      * Add product to cart using AJAX
      */
-   public function addToCart(Request $request, $uuid = null)
+    public function addToCart(Request $request, $identifier)
     {
-        // Extract product identifier from route param OR form input
-        $productUuid = $uuid ?? $request->input('uuid') ?? $request->input('product_id') ?? $request->input('id');
+        $product = Product::where(function ($query) use ($identifier) {
+            $query->where('uuid', $identifier);
 
-        if (!$productUuid) {
-            return back()->with('error', 'Product ID or UUID is required.');
-        }
+            if (is_numeric($identifier)) {
+                $query->orWhere('id', (int) $identifier);
+            }
+        })->firstOrFail();
 
-        // Search for product by UUID or primary ID
-        $product = Product::where('uuid', $productUuid)
-            ->orWhere('id', $productUuid)
-            ->first();
-
-        if (!$product) {
-            return back()->with('error', 'Product not found.');
-        }
-
-        $quantity = (int) $request->input('quantity', 1);
-        if ($quantity < 1) {
-            $quantity = 1;
-        }
+        $quantity = max(
+            1,
+            (int) $request->input('quantity', 1)
+        );
 
         $cart = session()->get('cart', []);
 
-        $cartKey = $product->uuid ?? $product->id;
+        $cartKey = (string) $product->id;
 
         if (isset($cart[$cartKey])) {
             $cart[$cartKey]['quantity'] += $quantity;
         } else {
             $cart[$cartKey] = [
-                'name'     => $product->title ?? $product->name,
+                'id' => $product->id,
+                'uuid' => $product->uuid,
+                'name' => $product->name,
+                'price' => (float) $product->price,
                 'quantity' => $quantity,
-                'price'    => $product->price,
-                'image'    => $product->image ?? $product->primary_image ?? null,
-                'uuid'     => $cartKey,
+                'image' => $this->getProductImage($product),
             ];
         }
 
         session()->put('cart', $cart);
 
-        return back()->with('success', 'Product added to cart successfully!');
+        CartActivity::create([
+            'product_id' => $product->id,
+            'user_id' => auth()->id(),
+            'session_id' => session()->getId(),
+            'quantity' => $quantity,
+            'product_price' => $product->price,
+            'total_amount' => (
+                (float) $product->price * $quantity
+            ),
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Product added to cart.',
+                'cart_count' => collect($cart)->sum('quantity'),
+            ]);
+        }
+
+        return back()->with(
+            'success',
+            'Product added to cart successfully.'
+        );
     }
 
 
@@ -518,6 +533,17 @@ class CartController extends Controller
         }
 
         session()->put('cart', $cart);
+
+        CartActivity::create([
+            'product_id' => $product->id,
+            'user_id' => auth()->id(),
+            'session_id' => session()->getId(),
+            'quantity' => $requestedQty,
+            'product_price' => $product->price,
+            'total_amount' => (
+                (float) $product->price * $requestedQty
+            ),
+        ]);
 
         // Calculate total cart quantity across all items
         $totalCartCount = array_sum(array_column($cart, 'quantity'));

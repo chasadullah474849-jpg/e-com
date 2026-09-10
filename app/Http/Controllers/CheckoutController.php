@@ -251,6 +251,15 @@ class CheckoutController extends Controller
                 'required',
                 'in:cash_on_delivery',
             ],
+            'payment_method' => 'required|in:cash_on_delivery,credit_debit_card',
+
+'card_holder' => 'required_if:payment_method,credit_debit_card|nullable|string|max:80',
+
+'card_number' => 'required_if:payment_method,credit_debit_card|nullable|string',
+
+'card_expiry' => 'required_if:payment_method,credit_debit_card|nullable|string',
+
+'card_cvv' => 'required_if:payment_method,credit_debit_card|nullable|string',
         ]);
 
 

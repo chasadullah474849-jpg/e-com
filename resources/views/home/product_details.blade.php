@@ -943,7 +943,7 @@
                     </span>
 
                 </a>
-
+              
 
                 <a
                     href="{{ route('cart') }}"

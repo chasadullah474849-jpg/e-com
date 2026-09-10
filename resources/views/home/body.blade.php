@@ -965,7 +965,7 @@
 
   <section class="instagram position-relative">
     <div class="d-flex justify-content-center w-100 position-absolute bottom-0 z-1">
-      <a href="https://www.instagram.com/templatesjungle/" class="btn btn-dark px-5">Follow us on Instagram</a>
+      <a href="https://www.instagram.com/" class="btn btn-dark px-5">Follow us on Instagram</a>
     </div>
     <div class="row g-0">
       <div class="col-6 col-sm-4 col-md-2">

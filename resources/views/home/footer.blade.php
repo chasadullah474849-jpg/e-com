@@ -27,7 +27,7 @@
                   </a>
                 </li>
                 <li>
-                  <a href="#" class="text-secondary">
+                  <a href="https://www.youtube.com/" class="text-secondary">
                     <svg width="24" height="24" viewBox="0 0 24 24">
                       <use xlink:href="#youtube"></use>
                     </svg>
@@ -41,7 +41,7 @@
                   </a>
                 </li>
                 <li>
-                  <a href="#" class="text-secondary">
+                  <a href="https://www.instagram.com/" class="text-secondary">
                     <svg width="24" height="24" viewBox="0 0 24 24">
                       <use xlink:href="#instagram"></use>
                     </svg>

@@ -10,24 +10,36 @@
         position: relative;
         z-index: 1050;
         width: 100%;
-        background-color: #ffffff;
+        padding: 14px 24px 10px;
+        background: rgba(248, 248, 246, .96);
     }
 
     .kaira-navbar {
-        min-height: 96px;
-        padding: 16px 0;
-        border-bottom: 1px solid #ededed;
-        background-color: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.04);
+        width: 100%;
+        max-width: 1380px;
+        min-height: 72px;
+        margin: 0 auto;
+        padding: 9px 24px;
+        border: 1px solid rgba(205, 200, 191, .85);
+        border-radius: 24px;
+        background: linear-gradient(135deg, #f0eee9 0%, #e8e5df 100%);
+        box-shadow: 0 8px 24px rgba(40, 38, 34, .08);
+        transition: min-height 0.25s ease, padding 0.25s ease,
+            border-radius 0.25s ease, box-shadow 0.25s ease;
     }
 
     .kaira-navbar.is-sticky {
         position: fixed;
-        top: 0;
-        right: 0;
-        left: 0;
-        min-height: 76px;
-        padding: 8px 0;
+        top: 8px;
+        right: auto;
+        left: 50%;
+        width: calc(100% - 48px);
+        max-width: 1380px;
+        min-height: 66px;
+        margin: 0;
+        transform: translateX(-50%);
+        padding: 7px 24px;
+        border-radius: 22px;
         animation: navbarSlideDown 0.3s ease;
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.10);
     }
@@ -36,12 +48,12 @@
 
         from {
             opacity: 0;
-            transform: translateY(-100%);
+            transform: translate(-50%, -100%);
         }
 
         to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translate(-50%, 0);
         }
 
     }
@@ -57,9 +69,9 @@
         align-items: center;
         color: #171717;
         font-family: Georgia, "Times New Roman", serif;
-        font-size: 31px;
+        font-size: 27px;
         font-weight: 700;
-        letter-spacing: 5px;
+        letter-spacing: 4.5px;
         line-height: 1;
         text-decoration: none;
         text-transform: uppercase;
@@ -72,7 +84,7 @@
     .kaira-brand-dot {
         margin-left: 2px;
         color: #cf2e3b;
-        font-size: 31px;
+        font-size: 27px;
     }
 
     /*
@@ -82,14 +94,14 @@
     */
 
     .kaira-navigation {
-        gap: 32px;
+        gap: 28px;
     }
 
     .kaira-navigation .nav-link {
         position: relative;
-        padding: 12px 0 !important;
-        color: #333333;
-        font-size: 15px;
+        padding: 9px 0 !important;
+        color: #353535;
+        font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.3px;
     }
@@ -102,12 +114,12 @@
     .kaira-navigation .nav-link::after {
         position: absolute;
         right: 0;
-        bottom: 3px;
+        bottom: 1px;
         left: 0;
         width: 0;
         height: 2px;
         margin: auto;
-        background-color: #222222;
+        background-color: #cf2e3b;
         content: "";
         transition: width 0.25s ease;
     }
@@ -115,6 +127,27 @@
     .kaira-navigation .nav-link:hover::after,
     .kaira-navigation .nav-link.active::after {
         width: 100%;
+    }
+
+    .kaira-navbar .dropdown-menu {
+        margin-top: 10px !important;
+        border: 1px solid rgba(216, 213, 207, .9) !important;
+        background: rgba(255, 255, 255, .98);
+        box-shadow: 0 16px 35px rgba(30, 29, 26, .12);
+    }
+
+    .kaira-navbar .dropdown-item {
+        color: #46433e;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color .2s ease, color .2s ease, padding-left .2s ease;
+    }
+
+    .kaira-navbar .dropdown-item:hover,
+    .kaira-navbar .dropdown-item.active {
+        padding-left: 18px !important;
+        background: #f5eeee;
+        color: #cf2e3b;
     }
 
     /*
@@ -134,12 +167,13 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 46px;
-        height: px;
+        width: 42px;
+        height: 42px;
         padding: 0;
         border: 0;
         border-radius: 50%;
-        background-color: transparent;
+        border: 1px solid #cbc7bf;
+        background-color: rgba(255, 255, 255, 0.55);
         color: #222222;
         text-decoration: none;
         cursor: pointer;
@@ -150,7 +184,7 @@
     }
 
     .kaira-icon-button:hover {
-        background-color: #f3f3f3;
+        background-color: #ffffff;
         color: #cf2e3b;
         transform: translateY(-2px);
     }
@@ -171,7 +205,7 @@
         min-width: 21px;
         height: 21px;
         padding: 0 5px;
-        border: 2px solid #ffffff;
+        border: 2px solid #e9e7e2;
         border-radius: 50px;
         background-color: #cf2e3b;
         color: #ffffff;
@@ -189,16 +223,17 @@
         display: flex;
         flex-direction: column;
         gap: 5px;
-               padding: 8px;
-        border: 0;
-        background: transparent;
+        padding: 10px;
+        border: 1px solid #cbc7bf;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.55);
         box-shadow: none !important;
     }
 
     .kaira-navbar-toggler span {
         display: block;
         width: 25px;
-               height: 2px;
+        height: 2px;
         background-color: #222222;
         transition: 0.25s ease;
     }
@@ -218,7 +253,7 @@
         padding: 25px 0;
         border-bottom: 1px solid #ededed;
         background-color: #ffffff;
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.10);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
     }
 
     .kaira-search-panel.show {
@@ -364,19 +399,35 @@
 
     @media (max-width: 991px) {
 
+        .kaira-header {
+            padding: 10px 12px 8px;
+        }
+
         .kaira-navbar {
-            min-height: 78px;
+            min-height: 64px;
+            padding: 7px 12px;
+            border-radius: 20px;
+        }
+
+        .kaira-navbar.is-sticky {
+            top: 8px;
+            right: auto;
+            left: 50%;
+            width: calc(100% - 24px);
+            padding: 7px 12px;
+            border-radius: 18px;
         }
 
         .kaira-brand {
-            font-size: 26px;
+            font-size: 24px;
         }
 
         .kaira-navbar .navbar-collapse {
-            margin-top: 16px;
-            padding: 20px;
-            border-top: 1px solid #eeeeee;
-            background-color: #ffffff;
+            margin-top: 10px;
+            padding: 14px 16px 16px;
+            border-top: 1px solid #d3d0ca;
+            border-radius: 0 0 18px 18px;
+            background-color: #e9e7e2;
         }
 
         .kaira-navigation {
@@ -394,7 +445,7 @@
 
         .kaira-search-panel {
             position: fixed;
-            top: 78px;
+            top: 68px;
             padding: 20px 15px;
         }
 
@@ -513,24 +564,81 @@
 
                     </li>
 
-                    <li class="nav-item">
+                   <li class="nav-item dropdown">
 
-                        <a
-                            href="{{ route('productss') }}"
-                            class="nav-link {{
-                                request()->routeIs(
-                                    'shop.category',
-                                    'shop.product'
-                                )
-                                    ? 'active'
-                                    : ''
-                            }}"
-                        >
-                            Shop
-                        </a>
+    <a
+        href="#"
+        class="nav-link dropdown-toggle {{
+            request()->routeIs('productss', 'product.details')
+                ? 'active'
+                : ''
+        }}"
+        id="shopDropdown"
+        role="button"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+    >
+        Shop
+    </a>
 
-                    </li>
+    <ul
+        class="dropdown-menu border-0 rounded-4 p-2"
+        aria-labelledby="shopDropdown"
+        style="min-width: 230px;"
+    >
+        {{-- Shop for Men --}}
+        <li>
+            <a
+                href="{{ route('productss', [
+                    'category' => 'SHOP FOR MEN'
+                ]) }}"
+                class="dropdown-item py-2 px-3 rounded-3 {{
+                    request('category') === 'SHOP FOR MEN'
+                        ? 'active'
+                        : ''
+                }}"
+            >
+                <i class="bi bi-person me-2"></i>
+                Shop for Men
+            </a>
+        </li>
 
+        {{-- Shop for Women --}}
+        <li>
+            <a
+                href="{{ route('productss', [
+                    'category' => 'SHOP FOR WOMEN'
+                ]) }}"
+                class="dropdown-item py-2 px-3 rounded-3 {{
+                    request('category') === 'SHOP FOR WOMEN'
+                        ? 'active'
+                        : ''
+                }}"
+            >
+                <i class="bi bi-person-heart me-2"></i>
+                Shop for Women
+            </a>
+        </li>
+
+        {{-- Accessories --}}
+        <li>
+            <a
+                href="{{ route('productss', [
+                    'category' => 'ACCESSORIES'
+                ]) }}"
+                class="dropdown-item py-2 px-3 rounded-3 {{
+                    request('category') === 'ACCESSORIES'
+                        ? 'active'
+                        : ''
+                }}"
+            >
+                <i class="bi bi-gem me-2"></i>
+                Accessories
+            </a>
+        </li>
+    </ul>
+
+</li>
                     <li class="nav-item">
 
                         <a
@@ -995,6 +1103,7 @@
 
                             if (
                                 window.innerWidth < 992 &&
+                                !menuLink.classList.contains('dropdown-toggle') &&
                                 window.bootstrap
                             ) {
                                 const collapseInstance =
