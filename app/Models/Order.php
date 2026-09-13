@@ -10,23 +10,28 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'order_no',
-        'order_date',
-        'customer_name',
-        'customer_email',
-        'customer_phone',
-        'total_amount',
-        'payment_status',
-        'fulfillment_status',
-        'delivery_status',
-        'delivery_method',
-        'shipping_address',
-        'notes',
+    protected $guarded = [];
+
+    protected $casts = [
+        'order_date' => 'datetime',
+        'subtotal' => 'decimal:2',
+        'shipping' => 'decimal:2',
+        'total' => 'decimal:2',
+        'total_amount' => 'decimal:2',
     ];
 
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function getDisplayNumberAttribute(): string
+    {
+        return $this->order_no ?: 'ORDER-' . $this->id;
+    }
+
+    public function getDisplayTotalAttribute(): float
+    {
+        return (float) ($this->total_amount ?? $this->total ?? 0);
     }
 }

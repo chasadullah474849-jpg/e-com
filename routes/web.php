@@ -26,6 +26,13 @@ use App\Http\Controllers\Admin\SubCategoryController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VarietyCrudController;
+use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminAuthController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AdminProfileController;
+use App\Http\Controllers\Admin\AnalyticsController;
+
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -867,3 +874,89 @@ Route::get('/test-email', function () {
         return 'Email failed: ' . $exception->getMessage();
     }
 })->name('test.email');
+
+
+
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Admin authentication
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')->group(function () {
+    Route::get(
+        '/login/admin',
+        [AdminAuthController::class, 'showLoginForm']
+    )->name('admin.login');
+
+    Route::post(
+        '/login/admin',
+        [AdminAuthController::class, 'login']
+    )->name('admin.login.submit');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated admin pages
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get(
+            '/',
+            [AdminController::class, 'dashboard']
+        )->name('dashboard');
+
+        Route::get(
+            '/profile',
+            [AdminProfileController::class, 'show']
+        )->name('profile');
+
+        Route::put(
+            '/profile',
+            [AdminProfileController::class, 'update']
+        )->name('profile.update');
+
+        Route::get(
+            '/settings',
+            [AdminProfileController::class, 'settings']
+        )->name('settings');
+
+        Route::put(
+            '/settings',
+            [AdminProfileController::class, 'updateSettings']
+        )->name('settings.update');
+
+        Route::put(
+            '/settings/password',
+            [AdminProfileController::class, 'updatePassword']
+        )->name('settings.password');
+
+        Route::get(
+            '/billing',
+            [AdminProfileController::class, 'billing']
+        )->name('billing');
+
+        Route::put(
+            '/billing',
+            [AdminProfileController::class, 'updateBilling']
+        )->name('billing.update');
+
+        Route::post(
+            '/logout',
+            [AdminAuthController::class, 'logout']
+        )->name('logout');
+    });
+
+
+
+Route::get(
+    '/admin/analytics',
+    [AnalyticsController::class, 'index']
+)->name('admin.analytics.index');
