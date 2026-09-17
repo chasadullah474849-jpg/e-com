@@ -10,6 +10,9 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Models\Order;
+use Carbon\CarbonPeriod;
+use Illuminate\Support\Collection;
 
 
 class DashboardController extends Controller
@@ -20,355 +23,216 @@ class DashboardController extends Controller
             ? $request->query('period')
             : 'week';
 
-        [$startDate, $endDate, $points, $databaseFormat] = $this->periodSettings($period);
+        [$startDate, $endDate] = $this->periodDates($period);
+        [$chartLabels, $chartKeys] = $this->chartAxis($period, $startDate, $endDate);
 
-        $totalProducts = Schema::hasTable('products') ? DB::table('products')->count() : 0;
-        $totalUsers = Schema::hasTable('users') ? DB::table('users')->count() : 0;
-
-        $totalCartClicks = 0;
-        $totalCartQuantity = 0;
-        $totalCartValue = 0;
-
-        if (Schema::hasTable('cart_activities')) {
-            $cartQuery = DB::table('cart_activities');
-            $totalCartClicks = (clone $cartQuery)->count();
-
-            if (Schema::hasColumn('cart_activities', 'quantity')) {
-                $totalCartQuantity = (int) (clone $cartQuery)->sum('quantity');
-            }
-
-            $cartAmountColumn = $this->firstColumn(
-                'cart_activities',
-                ['total_amount', 'amount', 'total', 'price']
-            );
-
-            if ($cartAmountColumn) {
-                $totalCartValue = (float) (clone $cartQuery)->sum($cartAmountColumn);
-            }
+        if (!Schema::hasTable('orders')) {
+            return $this->emptyDashboard($period, $chartLabels, $chartKeys);
         }
 
-        $totalOrders = 0;
-        $pendingOrders = 0;
-        $processingOrders = 0;
-        $shippedOrders = 0;
-        $deliveredOrders = 0;
-        $cancelledOrders = 0;
-        $transactions = 0;
-        $totalSales = 0;
-        $payments = 0;
-        $totalProfit = 0;
+        // created_at is reliably filled by Laravel. order_date is only a fallback.
+        $dateColumn = Schema::hasColumn('orders', 'created_at')
+            ? 'created_at'
+            : (Schema::hasColumn('orders', 'order_date') ? 'order_date' : 'id');
+
+        $ordersQuery = Order::query()->with('items');
+        if ($dateColumn !== 'id') {
+            $ordersQuery->whereBetween($dateColumn, [$startDate, $endDate]);
+        }
+
+        $orders = $ordersQuery
+            ->orderByDesc($dateColumn)
+            ->get();
+
+        $totalProducts = Schema::hasTable('products') ? Product::query()->count() : 0;
+        $totalOrders = $orders->count();
+        $transactions = $totalOrders;
+        $totalSales = $orders->sum(fn (Order $order) => $this->orderTotal($order));
+
+        $hasPaymentStatus = Schema::hasColumn('orders', 'payment_status');
+        $payments = $hasPaymentStatus
+            ? $orders->filter(fn (Order $order) => in_array(strtolower(trim((string) $order->payment_status)), [
+                'paid', 'completed', 'complete', 'succeeded', 'success', 'captured',
+            ], true))->sum(fn (Order $order) => $this->orderTotal($order))
+            : $totalSales;
+
+        // No cost/purchase-price field exists in the supplied models.
+        $totalProfit = $totalSales * 0.20;
         $profitIsEstimated = true;
-        $recentOrders = collect();
-        $popularProducts = collect();
 
-        $chartLabels = [];
-        $salesData = [];
-        $cartClickData = [];
-        $cartQuantityData = [];
+        $statusColumn = collect(['status', 'order_status', 'delivery_status'])
+            ->first(fn (string $column) => Schema::hasColumn('orders', $column));
 
-        foreach ($points as $point) {
-            $chartLabels[] = $this->pointLabel($point, $period);
-            $salesData[] = 0;
-            $cartClickData[] = 0;
-            $cartQuantityData[] = 0;
+        $statusCounts = [
+            'pending' => 0,
+            'processing' => 0,
+            'shipped' => 0,
+            'delivered' => 0,
+            'cancelled' => 0,
+        ];
+
+        foreach ($orders as $order) {
+            $status = $statusColumn
+                ? strtolower(trim((string) ($order->{$statusColumn} ?? 'pending')))
+                : 'pending';
+
+            $group = $this->statusGroup($status);
+            $statusCounts[$group]++;
         }
 
-        if (Schema::hasTable('orders')) {
-            $statusColumn = $this->firstColumn(
-                'orders',
-                ['status', 'order_status', 'delivery_status']
-            );
+        $salesMap = array_fill_keys($chartKeys, 0.0);
+        $ordersMap = array_fill_keys($chartKeys, 0);
 
-            $amountColumn = $this->firstColumn(
-                'orders',
-                [
-                    'grand_total',
-                    'total_amount',
-                    'total_price',
-                    'payable_amount',
-                    'order_total',
-                    'total',
-                    'amount'
-                ]
-            );
+        foreach ($orders as $order) {
+            $date = $order->{$dateColumn};
+            if (!$date) continue;
 
-            $paymentColumn = $this->firstColumn(
-                'orders',
-                ['payment_status', 'payment_state', 'is_paid']
-            );
+            $date = $date instanceof Carbon ? $date : Carbon::parse($date);
+            $key = match ($period) {
+                'day' => $date->format('H'),
+                'year' => $date->format('Y-m'),
+                default => $date->format('Y-m-d'),
+            };
 
-            $profitColumn = $this->firstColumn(
-                'orders',
-                ['profit', 'net_profit', 'gross_profit']
-            );
-
-            $costColumn = $this->firstColumn(
-                'orders',
-                ['total_cost', 'cost', 'cost_price', 'purchase_total']
-            );
-
-            /*
-             * All-time values are used for the order-status card so that an
-             * older pending/shipped order does not disappear when Week is selected.
-             */
-            $allOrders = DB::table('orders');
-            $totalOrders = (clone $allOrders)->count();
-
-            if ($statusColumn) {
-                $statusCounts = (clone $allOrders)
-                    ->selectRaw("LOWER(TRIM(CAST({$statusColumn} AS CHAR))) AS order_state")
-                    ->selectRaw('COUNT(*) AS total')
-                    ->groupBy('order_state')
-                    ->pluck('total', 'order_state');
-
-                $sumStatuses = fn (array $statuses) => collect($statuses)->sum(
-                    fn ($status) => (int) ($statusCounts[$status] ?? 0)
-                );
-
-                $pendingOrders = $sumStatuses([
-                    'pending', 'new', 'pending payment', 'pending_payment', 'unpaid'
-                ]);
-
-                $processingOrders = $sumStatuses([
-                    'processing', 'confirmed', 'accepted', 'paid', 'preparing'
-                ]);
-
-                $shippedOrders = $sumStatuses([
-                    'shipped', 'dispatched', 'on the way', 'on_the_way',
-                    'out for delivery', 'out_for_delivery'
-                ]);
-
-                $deliveredOrders = $sumStatuses([
-                    'delivered', 'completed', 'complete'
-                ]);
-
-                $cancelledOrders = $sumStatuses([
-                    'cancelled', 'canceled', 'refunded', 'failed', 'rejected'
-                ]);
+            if (array_key_exists($key, $salesMap)) {
+                $salesMap[$key] += $this->orderTotal($order);
+                $ordersMap[$key]++;
             }
-
-            /* Selected-period query powers Sales, Payments, Profit and graphs. */
-            $periodOrders = DB::table('orders');
-
-            if (Schema::hasColumn('orders', 'created_at')) {
-                $periodOrders->whereBetween('created_at', [$startDate, $endDate]);
-            }
-
-            $transactions = (clone $periodOrders)->count();
-
-            if ($amountColumn) {
-                $totalSales = (float) (clone $periodOrders)->sum($amountColumn);
-
-                if ($paymentColumn) {
-                    $payments = (float) (clone $periodOrders)
-                        ->whereIn(
-                            DB::raw("LOWER(TRIM(CAST({$paymentColumn} AS CHAR)))"),
-                            ['paid', 'completed', 'complete', 'success', 'successful', '1']
-                        )
-                        ->sum($amountColumn);
-                } else {
-                    /* No payment_status column: order total is treated as payment value. */
-                    $payments = $totalSales;
-                }
-
-                if ($profitColumn) {
-                    $totalProfit = (float) (clone $periodOrders)->sum($profitColumn);
-                    $profitIsEstimated = false;
-                } elseif ($costColumn) {
-                    $totalCost = (float) (clone $periodOrders)->sum($costColumn);
-                    $totalProfit = $totalSales - $totalCost;
-                    $profitIsEstimated = false;
-                } else {
-                    /* Change 0.25 if your store uses another profit percentage. */
-                    $totalProfit = $totalSales * 0.25;
-                    $profitIsEstimated = true;
-                }
-            }
-
-            if (Schema::hasColumn('orders', 'created_at')) {
-                $dateSql = DB::connection()->getDriverName() === 'sqlite'
-                    ? "strftime('{$databaseFormat}', created_at)"
-                    : "DATE_FORMAT(created_at, '{$databaseFormat}')";
-
-                $amountSql = $amountColumn
-                    ? "COALESCE(SUM({$amountColumn}), 0)"
-                    : '0';
-
-                $groupedOrders = (clone $periodOrders)
-                    ->selectRaw("{$dateSql} AS chart_key")
-                    ->selectRaw('COUNT(*) AS order_count')
-                    ->selectRaw("{$amountSql} AS sales_total")
-                    ->groupBy('chart_key')
-                    ->orderBy('chart_key')
-                    ->get()
-                    ->keyBy('chart_key');
-
-                $salesData = [];
-                $cartClickData = [];
-                $cartQuantityData = [];
-
-                foreach ($points as $point) {
-                    $row = $groupedOrders->get($this->pointKey($point, $period));
-                    $salesData[] = $row ? round((float) $row->sales_total, 2) : 0;
-                    $cartClickData[] = $row ? (int) $row->order_count : 0;
-                    $cartQuantityData[] = $row ? (int) $row->order_count : 0;
-                }
-            }
-
-            $recentOrders = DB::table('orders')
-                ->orderByDesc(
-                    Schema::hasColumn('orders', 'created_at') ? 'created_at' : 'id'
-                )
-                ->limit(6)
-                ->get();
-
-            $popularProducts = $this->popularProducts($startDate, $endDate);
         }
 
-        return view('admin.index', compact(
-            'period',
-            'totalProducts',
-            'totalUsers',
-            'totalCartClicks',
-            'totalCartQuantity',
-            'totalCartValue',
-            'totalSales',
-            'payments',
-            'transactions',
-            'totalProfit',
-            'profitIsEstimated',
-            'totalOrders',
-            'pendingOrders',
-            'processingOrders',
-            'shippedOrders',
-            'deliveredOrders',
-            'cancelledOrders',
-            'chartLabels',
-            'cartClickData',
-            'cartQuantityData',
-            'salesData',
-            'recentOrders',
-            'popularProducts'
-        ));
+        $recentOrders = Order::query()
+            ->with('items')
+            ->orderByDesc($dateColumn)
+            ->limit(8)
+            ->get()
+            ->map(function (Order $order) use ($statusColumn, $dateColumn) {
+                return (object) [
+                    'id' => $order->id,
+                    'number' => $order->display_number,
+                    'customer' => $order->customer_name
+                        ?? $order->name
+                        ?? $order->billing_name
+                        ?? $order->email
+                        ?? 'Customer',
+                    'amount' => $this->orderTotal($order),
+                    'status' => $statusColumn ? ($order->{$statusColumn} ?? 'pending') : 'pending',
+                    'date' => $order->{$dateColumn},
+                ];
+            });
+
+        return view('admin.dashboard', [
+            'period' => $period,
+            'totalProducts' => $totalProducts,
+            'totalOrders' => $totalOrders,
+            'transactions' => $transactions,
+            'totalSales' => $totalSales,
+            'payments' => $payments,
+            'totalProfit' => $totalProfit,
+            'profitIsEstimated' => $profitIsEstimated,
+            'statusCounts' => $statusCounts,
+            'pendingOrders' => $statusCounts['pending'],
+            'processingOrders' => $statusCounts['processing'],
+            'shippedOrders' => $statusCounts['shipped'],
+            'deliveredOrders' => $statusCounts['delivered'],
+            'cancelledOrders' => $statusCounts['cancelled'],
+            'chartLabels' => $chartLabels,
+            'salesData' => array_values($salesMap),
+            'ordersData' => array_values($ordersMap),
+            'cartClickData' => array_values($ordersMap),
+            'cartQuantityData' => array_values($ordersMap),
+            'totalCartClicks' => 0,
+            'totalCartQuantity' => 0,
+            'totalCartValue' => 0.0,
+            'popularProducts' => collect(),
+            'recentOrders' => $recentOrders,
+        ]);
     }
 
-    private function popularProducts(Carbon $startDate, Carbon $endDate)
+    private function orderTotal(Order $order): float
     {
-        $itemsTable = Schema::hasTable('order_items')
-            ? 'order_items'
-            : (Schema::hasTable('order_details') ? 'order_details' : null);
+        $total = (float) ($order->total_amount ?? $order->total ?? 0);
+        if ($total > 0) return $total;
 
-        if (!$itemsTable || !Schema::hasTable('products')) {
-            return collect();
-        }
+        return (float) $order->items->sum(function ($item) {
+            $itemTotal = (float) ($item->total ?? $item->subtotal ?? 0);
+            if ($itemTotal > 0) return $itemTotal;
 
-        $productColumn = $this->firstColumn(
-            $itemsTable,
-            ['product_id', 'product']
-        );
-
-        $quantityColumn = $this->firstColumn(
-            $itemsTable,
-            ['quantity', 'qty']
-        );
-
-        if (!$productColumn || !$quantityColumn) {
-            return collect();
-        }
-
-        $query = DB::table($itemsTable)
-            ->leftJoin(
-                'products',
-                "{$itemsTable}.{$productColumn}",
-                '=',
-                'products.id'
-            )
-            ->select(
-                'products.id',
-                'products.name',
-                DB::raw("SUM({$itemsTable}.{$quantityColumn}) AS total_quantity"),
-                DB::raw('COUNT(*) AS total_clicks')
-            )
-            ->groupBy('products.id', 'products.name')
-            ->orderByDesc('total_quantity')
-            ->limit(5);
-
-        if (Schema::hasColumn($itemsTable, 'created_at')) {
-            $query->whereBetween(
-                "{$itemsTable}.created_at",
-                [$startDate, $endDate]
-            );
-        }
-
-        return $query->get();
+            $unitPrice = (float) ($item->unit_price ?? $item->price ?? 0);
+            return $unitPrice * max(1, (int) ($item->quantity ?? 1));
+        });
     }
 
-    private function firstColumn(string $table, array $columns): ?string
+    private function statusGroup(string $status): string
     {
-        foreach ($columns as $column) {
-            if (Schema::hasColumn($table, $column)) {
-                return $column;
-            }
-        }
-
-        return null;
+        return match (true) {
+            in_array($status, ['processing', 'confirmed', 'accepted', 'paid', 'preparing'], true) => 'processing',
+            in_array($status, ['shipped', 'dispatched', 'on the way', 'on_the_way', 'out for delivery', 'out_for_delivery'], true) => 'shipped',
+            in_array($status, ['delivered', 'completed', 'complete'], true) => 'delivered',
+            in_array($status, ['cancelled', 'canceled', 'refunded', 'failed'], true) => 'cancelled',
+            default => 'pending',
+        };
     }
 
-    private function periodSettings(string $period): array
+    private function periodDates(string $period): array
     {
         $now = now();
 
+        return match ($period) {
+            'day' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+            'month' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+            'year' => [$now->copy()->startOfYear(), $now->copy()->endOfYear()],
+            default => [$now->copy()->subDays(6)->startOfDay(), $now->copy()->endOfDay()],
+        };
+    }
+
+    private function chartAxis(string $period, Carbon $startDate, Carbon $endDate): array
+    {
         if ($period === 'day') {
-            $start = $now->copy()->startOfDay();
-            $points = collect(range(0, 23))->map(
-                fn ($hour) => $start->copy()->addHours($hour)
-            );
-
-            return [$start, $now->copy()->endOfDay(), $points, '%Y-%m-%d %H'];
-        }
-
-        if ($period === 'month') {
-            $start = $now->copy()->startOfMonth();
-            $points = collect(range(0, $now->daysInMonth - 1))->map(
-                fn ($day) => $start->copy()->addDays($day)
-            );
-
-            return [$start, $now->copy()->endOfMonth(), $points, '%Y-%m-%d'];
+            $keys = collect(range(0, 23))->map(fn ($hour) => str_pad((string) $hour, 2, '0', STR_PAD_LEFT))->all();
+            $labels = collect(range(0, 23))->map(fn ($hour) => Carbon::createFromTime($hour)->format('g A'))->all();
+            return [$labels, $keys];
         }
 
         if ($period === 'year') {
-            $start = $now->copy()->startOfYear();
-            $points = collect(range(0, 11))->map(
-                fn ($month) => $start->copy()->addMonths($month)
-            );
-
-            return [$start, $now->copy()->endOfYear(), $points, '%Y-%m'];
+            $keys = collect(range(1, 12))->map(fn ($month) => $startDate->copy()->month($month)->format('Y-m'))->all();
+            $labels = collect(range(1, 12))->map(fn ($month) => $startDate->copy()->month($month)->format('M'))->all();
+            return [$labels, $keys];
         }
 
-        $start = $now->copy()->subDays(6)->startOfDay();
-        $points = collect(range(0, 6))->map(
-            fn ($day) => $start->copy()->addDays($day)
-        );
-
-        return [$start, $now->copy()->endOfDay(), $points, '%Y-%m-%d'];
+        $dates = collect(CarbonPeriod::create($startDate->copy()->startOfDay(), $endDate->copy()->startOfDay()));
+        return [
+            $dates->map(fn ($date) => $date->format('M d'))->all(),
+            $dates->map(fn ($date) => $date->format('Y-m-d'))->all(),
+        ];
     }
 
-    private function pointKey(Carbon $point, string $period): string
+    private function emptyDashboard(string $period, array $chartLabels, array $chartKeys)
     {
-        return match ($period) {
-            'day' => $point->format('Y-m-d H'),
-            'year' => $point->format('Y-m'),
-            default => $point->format('Y-m-d'),
-        };
-    }
-
-    private function pointLabel(Carbon $point, string $period): string
-    {
-        return match ($period) {
-            'day' => $point->format('g A'),
-            'month' => $point->format('d M'),
-            'year' => $point->format('M'),
-            default => $point->format('D'),
-        };
+        return view('admin.dashboard', [
+            'period' => $period,
+            'totalProducts' => Schema::hasTable('products') ? Product::query()->count() : 0,
+            'totalOrders' => 0,
+            'transactions' => 0,
+            'totalSales' => 0.0,
+            'payments' => 0.0,
+            'totalProfit' => 0.0,
+            'profitIsEstimated' => true,
+            'statusCounts' => ['pending'=>0,'processing'=>0,'shipped'=>0,'delivered'=>0,'cancelled'=>0],
+            'pendingOrders' => 0,
+            'processingOrders' => 0,
+            'shippedOrders' => 0,
+            'deliveredOrders' => 0,
+            'cancelledOrders' => 0,
+            'chartLabels' => $chartLabels,
+            'salesData' => array_fill(0, count($chartKeys), 0),
+            'ordersData' => array_fill(0, count($chartKeys), 0),
+            'cartClickData' => array_fill(0, count($chartKeys), 0),
+            'cartQuantityData' => array_fill(0, count($chartKeys), 0),
+            'totalCartClicks' => 0,
+            'totalCartQuantity' => 0,
+            'totalCartValue' => 0.0,
+            'popularProducts' => collect(),
+            'recentOrders' => collect(),
+        ]);
     }
 }

@@ -14,6 +14,7 @@ class Order extends Model
 
     protected $casts = [
         'order_date' => 'datetime',
+        'paid_at' => 'datetime',
         'subtotal' => 'decimal:2',
         'shipping' => 'decimal:2',
         'total' => 'decimal:2',

@@ -740,32 +740,17 @@
                         </label>
 
                         <div class="card-payment-panel" id="cardPaymentPanel" aria-hidden="true">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label for="card_holder">Name on Card</label>
-                                    <input type="text" id="card_holder" name="card_holder" class="form-control" value="{{ old('card_holder') }}" placeholder="Asad Arif" autocomplete="cc-name" maxlength="80">
-                                    <div class="invalid-feedback">Enter the cardholder name.</div>
-                                </div>
-                                <div class="col-12">
-                                    <label for="card_number">Card Number</label>
-                                    <div class="card-number-wrap">
-                                        <input type="text" id="card_number" name="card_number" class="form-control" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19">
-                                        <span class="card-brand" id="cardBrand">CARD</span>
-                                        <div class="invalid-feedback">Enter a valid card number.</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="card_expiry">Expiry Date</label>
-                                    <input type="text" id="card_expiry" name="card_expiry" class="form-control" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" maxlength="5">
-                                    <div class="invalid-feedback">Enter a valid future expiry date.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="card_cvv">CVV</label>
-                                    <input type="password" id="card_cvv" name="card_cvv" class="form-control" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4">
-                                    <div class="invalid-feedback">Enter a valid 3 or 4 digit CVV.</div>
-                                </div>
+                            <div class="mb-3">
+                                <label for="card_holder">Name on Card</label>
+                                <input type="text" id="card_holder" class="form-control" value="{{ old('card_holder') }}" placeholder="Name shown on card" autocomplete="cc-name" maxlength="80">
+                                <div class="invalid-feedback">Enter the cardholder name.</div>
                             </div>
-                            <div class="secure-note"><i class="bi bi-shield-lock-fill"></i><span>Demo card form. Connect a PCI-compliant payment gateway before accepting real card details.</span></div>
+
+                            <label for="card-element">Card Details</label>
+                            <div id="card-element" class="form-control" style="height:auto; min-height:46px; padding:13px 14px;"></div>
+                            <div id="card-errors" class="text-danger small mt-2" role="alert"></div>
+
+                            <div class="secure-note"><i class="bi bi-shield-lock-fill"></i><span>Your card information is securely collected and processed by Stripe. It never passes through this website's server.</span></div>
                         </div>
                     </div>
 
@@ -984,16 +969,40 @@
 </div>
 
 
+<script src="https://js.stripe.com/v3/"></script>
+
 <script>
 
     const checkoutForm = document.getElementById('checkoutForm');
     const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
     const cardPanel = document.getElementById('cardPaymentPanel');
     const cardHolder = document.getElementById('card_holder');
-    const cardNumber = document.getElementById('card_number');
-    const cardExpiry = document.getElementById('card_expiry');
-    const cardCvv = document.getElementById('card_cvv');
-    const cardBrand = document.getElementById('cardBrand');
+    const cardErrors = document.getElementById('card-errors');
+    const placeOrderButton = document.getElementById('placeOrderButton');
+    const buttonText = document.getElementById('buttonText');
+    const buttonSpinner = document.getElementById('buttonSpinner');
+    const stripePublicKey = @json($stripeKey ?? config('services.stripe.key'));
+    const stripe = stripePublicKey ? Stripe(stripePublicKey) : null;
+    const elements = stripe ? stripe.elements() : null;
+    const cardElement = elements ? elements.create('card', {
+        hidePostalCode: true,
+        style: {
+            base: {
+                color: '#222222',
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '16px',
+                '::placeholder': { color: '#9aa0a6' }
+            },
+            invalid: { color: '#dc3545', iconColor: '#dc3545' }
+        }
+    }) : null;
+
+    if (cardElement) {
+        cardElement.mount('#card-element');
+        cardElement.on('change', function (event) {
+            cardErrors.textContent = event.error ? event.error.message : '';
+        });
+    }
 
     function cardSelected() { return document.getElementById('credit_card').checked; }
     function updatePaymentUI() {
@@ -1002,62 +1011,96 @@
         if (checked) checked.closest('.payment-box').classList.add('selected');
         cardPanel.classList.toggle('show', cardSelected());
         cardPanel.setAttribute('aria-hidden', cardSelected() ? 'false' : 'true');
-        [cardHolder, cardNumber, cardExpiry, cardCvv].forEach(field => field.required = cardSelected());
+        cardHolder.required = cardSelected();
     }
     paymentRadios.forEach(radio => radio.addEventListener('change', updatePaymentUI));
     updatePaymentUI();
 
-    cardNumber.addEventListener('input', function () {
-        const digits = this.value.replace(/\D/g, '').slice(0, 16);
-        this.value = digits.replace(/(.{4})/g, '$1 ').trim();
-        cardBrand.textContent = digits.startsWith('4') ? 'VISA' : /^5[1-5]/.test(digits) ? 'MC' : 'CARD';
-        this.classList.remove('is-invalid');
+    function setProcessing(processing, text = 'Processing Order...') {
+        placeOrderButton.disabled = processing;
+        buttonText.innerText = processing ? text : 'Place Order Now';
+        buttonSpinner.style.display = processing ? 'inline-block' : 'none';
+    }
+
+    checkoutForm.addEventListener('submit', async function (event) {
+        if (!cardSelected()) {
+            setProcessing(true);
+            return;
+        }
+
+        event.preventDefault();
+        cardErrors.textContent = '';
+
+        if (!stripe || !cardElement) {
+            cardErrors.textContent = 'Stripe is not configured. Add STRIPE_KEY to your .env file.';
+            cardPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        if (cardHolder.value.trim().length < 2) {
+            cardHolder.classList.add('is-invalid');
+            cardPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        cardHolder.classList.remove('is-invalid');
+        setProcessing(true, 'Securing Payment...');
+
+        try {
+            const formData = new FormData(checkoutForm);
+            const response = await fetch(@json(route('checkout.stripe.create-intent')), {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || !data.clientSecret) {
+                const validationError = data.errors
+                    ? Object.values(data.errors).flat()[0]
+                    : null;
+                throw new Error(validationError || data.message || 'Unable to prepare Stripe payment.');
+            }
+
+            const result = await stripe.confirmCardPayment(data.clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name: cardHolder.value.trim(),
+                        email: document.getElementById('email').value,
+                        phone: document.getElementById('phone').value,
+                        address: {
+                            line1: document.getElementById('address').value,
+                            line2: document.getElementById('address2').value,
+                            city: document.getElementById('city').value,
+                            postal_code: document.getElementById('zip').value,
+                            country: 'PK'
+                        }
+                    }
+                }
+            });
+
+            if (result.error) {
+                throw new Error(result.error.message || 'Card payment failed.');
+            }
+
+            if (!result.paymentIntent || result.paymentIntent.status !== 'succeeded') {
+                throw new Error('Stripe payment was not completed.');
+            }
+
+            window.location.href = @json(route('checkout.stripe.success'))
+                + '?payment_intent=' + encodeURIComponent(result.paymentIntent.id);
+        } catch (error) {
+            cardErrors.textContent = error.message || 'Payment could not be completed.';
+            cardPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setProcessing(false);
+        }
     });
-    cardExpiry.addEventListener('input', function () {
-        const digits = this.value.replace(/\D/g, '').slice(0, 4);
-        this.value = digits.length > 2 ? digits.slice(0,2) + '/' + digits.slice(2) : digits;
-        this.classList.remove('is-invalid');
-    });
-    cardCvv.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0,4);this.classList.remove('is-invalid'); });
-
-    function luhn(number) {
-        let sum=0,doubleDigit=false;
-        for(let i=number.length-1;i>=0;i--){let digit=Number(number[i]);if(doubleDigit){digit*=2;if(digit>9)digit-=9}sum+=digit;doubleDigit=!doubleDigit}
-        return number.length>=13 && number.length<=16 && sum%10===0;
-    }
-    function validExpiry(value) {
-        const match=value.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);if(!match)return false;
-        const expiry=new Date(2000+Number(match[2]),Number(match[1]),0,23,59,59);return expiry>=new Date();
-    }
-    function validateCard() {
-        if(!cardSelected())return true;
-        const tests=[[cardHolder,cardHolder.value.trim().length>=2],[cardNumber,luhn(cardNumber.value.replace(/\D/g,''))],[cardExpiry,validExpiry(cardExpiry.value)],[cardCvv,/^\d{3,4}$/.test(cardCvv.value)]];
-        tests.forEach(([field,valid])=>field.classList.toggle('is-invalid',!valid));
-        return tests.every(([,valid])=>valid);
-    }
-
-    checkoutForm.addEventListener('submit', function (event) {
-            if (!validateCard()) { event.preventDefault();cardPanel.scrollIntoView({behavior:'smooth',block:'center'});return; }
-
-            const button =
-                document.getElementById('placeOrderButton');
-
-            const text =
-                document.getElementById('buttonText');
-
-            const spinner =
-                document.getElementById('buttonSpinner');
-
-
-            button.disabled = true;
-
-            text.innerText =
-                'Processing Order...';
-
-            spinner.style.display =
-                'inline-block';
-
-        });
 
 </script>
 

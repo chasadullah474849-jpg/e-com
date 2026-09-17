@@ -196,7 +196,6 @@ Route::prefix('cart')->group(function () {
         ->name('cart.remove');
 });
 
-
 /*
 |--------------------------------------------------------------------------
 | CHECKOUT AND ORDER ROUTES
@@ -214,12 +213,17 @@ Route::post(
 )->name('checkout.submit');
 
 Route::post(
+    '/checkout/process',
+    [CheckoutController::class, 'process']
+)->name('checkout.process');
+
+Route::post(
     '/place-order',
     [CheckoutController::class, 'process']
 )->name('checkout.place');
 
 Route::get(
-    '/order-success',
+    '/order/success',
     [CheckoutController::class, 'orderSuccess']
 )->name('order.success');
 
@@ -231,34 +235,79 @@ Route::get(
 
 /*
 |--------------------------------------------------------------------------
-| STRIPE PAYMENT ROUTES
+| CART STRIPE PAYMENT ROUTES
 |--------------------------------------------------------------------------
+|
+| These routes process all products currently stored in the cart.
+| Unique route names prevent conflict with single-product Stripe routes.
+|
 */
 
-// Stripe checkout using product UUID
+Route::post(
+    '/checkout/stripe/create-payment-intent',
+    [
+        CheckoutController::class,
+        'createPaymentIntent'
+    ]
+)->name('checkout.stripe.create-intent');
+
+Route::get(
+    '/checkout/stripe/payment-success',
+    [
+        CheckoutController::class,
+        'stripeSuccess'
+    ]
+)->name('checkout.stripe.success');
+
+Route::post(
+    '/checkout/stripe/webhook',
+    [
+        CheckoutController::class,
+        'webhook'
+    ]
+)->name('checkout.stripe.webhook');
+
+
+/*
+|--------------------------------------------------------------------------
+| SINGLE PRODUCT STRIPE PAYMENT ROUTES
+|--------------------------------------------------------------------------
+|
+| These routes are only for purchasing one product directly.
+|
+*/
+
 Route::get(
     '/payment/checkout/{product:uuid}',
-    [StripePaymentController::class, 'checkout']
+    [
+        StripePaymentController::class,
+        'checkout'
+    ]
 )->name('stripe.checkout');
 
-// Create PaymentIntent using product UUID
 Route::post(
     '/payment/create-intent/{product:uuid}',
-    [StripePaymentController::class, 'createPaymentIntent']
+    [
+        StripePaymentController::class,
+        'createPaymentIntent'
+    ]
 )->name('stripe.create-intent');
 
-// Stripe payment result
 Route::get(
     '/payment/success',
-    [StripePaymentController::class, 'success']
+    [
+        StripePaymentController::class,
+        'success'
+    ]
 )->name('stripe.success');
 
-// Stripe webhook
 Route::post(
-    '/stripe/webhook',
-    [StripePaymentController::class, 'webhook']
+    '/stripe/product-webhook',
+    [
+        StripePaymentController::class,
+        'webhook'
+    ]
 )->name('stripe.webhook');
-
 
 /*
 |--------------------------------------------------------------------------
