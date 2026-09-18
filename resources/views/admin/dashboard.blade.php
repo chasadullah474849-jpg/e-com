@@ -29,39 +29,189 @@
     <div class="layout-page">@include('admin.nav')
         <div class="content-wrapper">
             @php
-                $totalProducts=$totalProducts??0;$totalCartClicks=$totalCartClicks??0;$totalCartQuantity=$totalCartQuantity??0;$totalCartValue=$totalCartValue??0;
-                $totalOrders=$totalOrders??0;$totalSales=$totalSales??0;$totalProfit=$totalProfit??0;
-                $payments=$payments??0;$transactions=$transactions??0;$popularProducts=$popularProducts??collect();$recentOrders=$recentOrders??collect();
-                $period=$period??'week';$profitIsEstimated=$profitIsEstimated??false;$chartLabels=$chartLabels??[];$salesData=$salesData??[];$cartClickData=$cartClickData??[];$cartQuantityData=$cartQuantityData??[];
-                $pendingOrders=$pendingOrders??0;$processingOrders=$processingOrders??0;$shippedOrders=$shippedOrders??0;$deliveredOrders=$deliveredOrders??0;
+                /*
+                 * Complete self-contained dashboard data loader.
+                 * This view reads the database directly, so no dashboard controller
+                 * variables are required. It supports the most common column names.
+                 */
+                $DB = \Illuminate\Support\Facades\DB::class;
+                $Schema = \Illuminate\Support\Facades\Schema::class;
+                $period = in_array(request('period'), ['day', 'week', 'month', 'year'], true)
+                    ? request('period') : 'week';
 
-                /* Read order statistics directly and support common status-column names. */
+                $firstColumn = function (string $table, array $names) use ($Schema) {
+                    foreach ($names as $name) {
+                        if ($Schema::hasColumn($table, $name)) return $name;
+                    }
+                    return null;
+                };
+
+                $totalProducts = $totalCartClicks = $totalCartQuantity = 0;
+                $totalOrders = $transactions = 0;
+                $totalCartValue = $totalSales = $totalProfit = $payments = 0.0;
+                $pendingOrders = $processingOrders = $shippedOrders = $deliveredOrders = 0;
+                $popularProducts = collect();
+                $profitIsEstimated = false;
+                $chartLabels = $salesData = $cartClickData = $cartQuantityData = [];
+
                 try {
-                    if (\Illuminate\Support\Facades\Schema::hasTable('orders')) {
-                        $orderQuery = \Illuminate\Support\Facades\DB::table('orders');
-                        $totalOrders = (clone $orderQuery)->count();
+                    if ($Schema::hasTable('products')) {
+                        $totalProducts = $DB::table('products')->count();
+                    }
 
-                        $statusColumn = collect(['status', 'order_status', 'delivery_status'])
-                            ->first(fn ($column) => \Illuminate\Support\Facades\Schema::hasColumn('orders', $column));
+                    $orderAmountColumn = null;
+                    $orderDateColumn = null;
+
+                    if ($Schema::hasTable('orders')) {
+                        $orders = $DB::table('orders');
+                        $totalOrders = (clone $orders)->count();
+                        $transactions = $totalOrders;
+
+                        $orderAmountColumn = $firstColumn('orders', [
+                            'total_amount', 'grand_total', 'total', 'amount',
+                            'total_price', 'payable_amount', 'order_total', 'subtotal'
+                        ]);
+                        $profitColumn = $firstColumn('orders', ['profit', 'net_profit']);
+                        $statusColumn = $firstColumn('orders', ['status', 'order_status', 'delivery_status']);
+                        $paymentColumn = $firstColumn('orders', ['payment_status', 'paid_status']);
+                        $orderDateColumn = $firstColumn('orders', ['created_at', 'order_date', 'date']);
+
+                        $validSales = clone $orders;
+                        if ($statusColumn) {
+                            $validSales->whereNotIn($DB::raw("LOWER(TRIM(`{$statusColumn}`))"), [
+                                'cancelled', 'canceled', 'refunded', 'failed'
+                            ]);
+                        }
+
+                        if ($orderAmountColumn) {
+                            $totalSales = (float) $validSales->sum($orderAmountColumn);
+                        }
+
+                        if ($paymentColumn && $orderAmountColumn) {
+                            $payments = (float) (clone $orders)
+                                ->whereIn($DB::raw("LOWER(TRIM(`{$paymentColumn}`))"), [
+                                    'paid', 'completed', 'complete', 'success', 'succeeded'
+                                ])->sum($orderAmountColumn);
+                        } else {
+                            $payments = $totalSales;
+                        }
+
+                        if ($profitColumn) {
+                            $totalProfit = (float) (clone $validSales)->sum($profitColumn);
+                        } else {
+                            $totalProfit = $totalSales * 0.20;
+                            $profitIsEstimated = true;
+                        }
 
                         if ($statusColumn) {
-                            $statusCounts = (clone $orderQuery)
-                                ->selectRaw("LOWER(TRIM({$statusColumn})) as dashboard_status, COUNT(*) as total")
+                            $statusCounts = (clone $orders)
+                                ->selectRaw("LOWER(TRIM(`{$statusColumn}`)) AS dashboard_status, COUNT(*) AS aggregate")
                                 ->groupBy('dashboard_status')
-                                ->pluck('total', 'dashboard_status');
+                                ->pluck('aggregate', 'dashboard_status');
 
-                            $countStatuses = function (array $statuses) use ($statusCounts) {
-                                return collect($statuses)->sum(fn ($status) => (int) ($statusCounts[$status] ?? 0));
-                            };
+                            $statusTotal = fn (array $names) => collect($names)
+                                ->sum(fn ($name) => (int) ($statusCounts[$name] ?? 0));
 
-                            $pendingOrders = $countStatuses(['pending', 'new', 'pending payment', 'pending_payment']);
-                            $processingOrders = $countStatuses(['processing', 'confirmed', 'accepted', 'paid']);
-                            $shippedOrders = $countStatuses(['shipped', 'on the way', 'on_the_way', 'dispatched', 'out for delivery', 'out_for_delivery']);
-                            $deliveredOrders = $countStatuses(['delivered', 'completed', 'complete']);
+                            $pendingOrders = $statusTotal(['pending', 'new', 'pending payment', 'pending_payment']);
+                            $processingOrders = $statusTotal(['processing', 'confirmed', 'accepted', 'paid']);
+                            $shippedOrders = $statusTotal(['shipped', 'dispatched', 'on the way', 'on_the_way', 'out for delivery', 'out_for_delivery']);
+                            $deliveredOrders = $statusTotal(['delivered', 'completed', 'complete']);
+                        } else {
+                            $pendingOrders = $totalOrders;
                         }
                     }
-                } catch (\Throwable $exception) {
-                    /* Keep controller-provided values if the orders table is unavailable. */
+
+                    $cartDateColumn = null;
+                    $clickColumn = null;
+                    $quantityColumn = null;
+
+                    if ($Schema::hasTable('cart_activities')) {
+                        $cart = $DB::table('cart_activities');
+                        $clickColumn = $firstColumn('cart_activities', ['clicks', 'click_count', 'total_clicks']);
+                        $quantityColumn = $firstColumn('cart_activities', ['quantity', 'qty', 'total_quantity']);
+                        $cartValueColumn = $firstColumn('cart_activities', ['cart_value', 'total_value', 'amount', 'price']);
+                        $cartDateColumn = $firstColumn('cart_activities', ['created_at', 'date']);
+                        $productIdColumn = $firstColumn('cart_activities', ['product_id']);
+
+                        $totalCartClicks = $clickColumn ? (int) (clone $cart)->sum($clickColumn) : (clone $cart)->count();
+                        $totalCartQuantity = $quantityColumn ? (int) (clone $cart)->sum($quantityColumn) : $totalCartClicks;
+                        $totalCartValue = $cartValueColumn ? (float) (clone $cart)->sum($cartValueColumn) : $totalSales;
+
+                        if ($productIdColumn && $Schema::hasTable('products')) {
+                            $productNameColumn = $firstColumn('products', ['name', 'title', 'product_name']);
+                            $popularQuery = $DB::table('cart_activities AS ca')
+                                ->leftJoin('products AS p', 'p.id', '=', 'ca.product_id')
+                                ->select('ca.product_id')
+                                ->selectRaw($clickColumn ? "SUM(ca.`{$clickColumn}`) AS total_clicks" : 'COUNT(*) AS total_clicks')
+                                ->selectRaw($quantityColumn ? "SUM(ca.`{$quantityColumn}`) AS total_quantity" : 'COUNT(*) AS total_quantity')
+                                ->groupBy('ca.product_id')
+                                ->orderByDesc('total_clicks')
+                                ->limit(6);
+
+                            if ($productNameColumn) {
+                                $popularQuery->addSelect("p.{$productNameColumn} AS product_name")
+                                    ->groupBy("p.{$productNameColumn}");
+                            }
+
+                            $popularProducts = $popularQuery->get()->map(function ($item) {
+                                $item->product = (object) ['name' => $item->product_name ?? ('Product #'.$item->product_id)];
+                                return $item;
+                            });
+                        }
+                    } else {
+                        $totalCartValue = $totalSales;
+                    }
+
+                    /* Build graph labels and match database totals to each time bucket. */
+                    $now = now();
+                    if ($period === 'day') {
+                        $start = $now->copy()->startOfDay(); $end = $now->copy()->endOfDay();
+                        $bucketFormat = 'Y-m-d H'; $sqlFormat = '%Y-%m-%d %H';
+                        $dates = collect(range(0, 23))->map(fn ($i) => $start->copy()->addHours($i));
+                        $chartLabels = $dates->map(fn ($date) => $date->format('g A'))->all();
+                    } elseif ($period === 'month') {
+                        $start = $now->copy()->startOfMonth(); $end = $now->copy()->endOfMonth();
+                        $bucketFormat = 'Y-m-d'; $sqlFormat = '%Y-%m-%d';
+                        $dates = collect(range(0, $now->daysInMonth - 1))->map(fn ($i) => $start->copy()->addDays($i));
+                        $chartLabels = $dates->map(fn ($date) => $date->format('d M'))->all();
+                    } elseif ($period === 'year') {
+                        $start = $now->copy()->startOfYear(); $end = $now->copy()->endOfYear();
+                        $bucketFormat = 'Y-m'; $sqlFormat = '%Y-%m';
+                        $dates = collect(range(0, 11))->map(fn ($i) => $start->copy()->addMonths($i));
+                        $chartLabels = $dates->map(fn ($date) => $date->format('M'))->all();
+                    } else {
+                        $start = $now->copy()->subDays(6)->startOfDay(); $end = $now->copy()->endOfDay();
+                        $bucketFormat = 'Y-m-d'; $sqlFormat = '%Y-%m-%d';
+                        $dates = collect(range(0, 6))->map(fn ($i) => $start->copy()->addDays($i));
+                        $chartLabels = $dates->map(fn ($date) => $date->format('D'))->all();
+                    }
+
+                    $salesBuckets = collect();
+                    if ($orderAmountColumn && $orderDateColumn) {
+                        $salesBuckets = $DB::table('orders')
+                            ->whereBetween($orderDateColumn, [$start, $end])
+                            ->selectRaw("DATE_FORMAT(`{$orderDateColumn}`, '{$sqlFormat}') AS bucket")
+                            ->selectRaw("SUM(`{$orderAmountColumn}`) AS aggregate")
+                            ->groupBy('bucket')->pluck('aggregate', 'bucket');
+                    }
+
+                    $clickBuckets = $quantityBuckets = collect();
+                    if ($Schema::hasTable('cart_activities') && $cartDateColumn) {
+                        $cartRows = $DB::table('cart_activities')
+                            ->whereBetween($cartDateColumn, [$start, $end])
+                            ->selectRaw("DATE_FORMAT(`{$cartDateColumn}`, '{$sqlFormat}') AS bucket")
+                            ->selectRaw($clickColumn ? "SUM(`{$clickColumn}`) AS clicks" : 'COUNT(*) AS clicks')
+                            ->selectRaw($quantityColumn ? "SUM(`{$quantityColumn}`) AS quantities" : 'COUNT(*) AS quantities')
+                            ->groupBy('bucket')->get();
+                        $clickBuckets = $cartRows->pluck('clicks', 'bucket');
+                        $quantityBuckets = $cartRows->pluck('quantities', 'bucket');
+                    }
+
+                    $salesData = $dates->map(fn ($date) => (float) ($salesBuckets[$date->format($bucketFormat)] ?? 0))->all();
+                    $cartClickData = $dates->map(fn ($date) => (int) ($clickBuckets[$date->format($bucketFormat)] ?? 0))->all();
+                    $cartQuantityData = $dates->map(fn ($date) => (int) ($quantityBuckets[$date->format($bucketFormat)] ?? 0))->all();
+                } catch (\Throwable $dashboardError) {
+                    \Illuminate\Support\Facades\Log::error('Admin dashboard error: '.$dashboardError->getMessage());
                 }
             @endphp
             <main class="container-xxl flex-grow-1 container-p-y k-dashboard">

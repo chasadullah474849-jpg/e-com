@@ -1,53 +1,231 @@
 @php
-    $period = $period ?? request('period', 'week');
-    $totalProducts = $totalProducts ?? 0;
-    $totalUsers = $totalUsers ?? 0;
-    $totalCartClicks = $totalCartClicks ?? 0;
-    $totalCartQuantity = $totalCartQuantity ?? 0;
-    $totalCartValue = $totalCartValue ?? 0;
-    $totalSales = $totalSales ?? 0;
-    $payments = $payments ?? 0;
-    $transactions = $transactions ?? 0;
-    $totalProfit = $totalProfit ?? 0;
-    $totalOrders = $totalOrders ?? 0;
-    $pendingOrders = $pendingOrders ?? 0;
-    $processingOrders = $processingOrders ?? 0;
-    $shippedOrders = $shippedOrders ?? 0;
-    $deliveredOrders = $deliveredOrders ?? 0;
-    $cancelledOrders = $cancelledOrders ?? 0;
-    $chartLabels = $chartLabels ?? [];
-    $salesData = $salesData ?? [];
-    $cartClickData = $cartClickData ?? [];
-    $cartQuantityData = $cartQuantityData ?? [];
-    $popularProducts = $popularProducts ?? collect();
-    $recentOrders = $recentOrders ?? collect();
+    /*
+     * FULLY DYNAMIC DASHBOARD
+     * Every value is rebuilt from the current database on every request.
+     * It supports the column names used by the supplied e-commerce project.
+     */
+    $DB = \Illuminate\Support\Facades\DB::class;
+    $Schema = \Illuminate\Support\Facades\Schema::class;
+    $period = in_array(request('period'), ['day', 'week', 'month', 'year'], true)
+        ? request('period')
+        : 'week';
     $currency = config('app.currency_symbol', '$');
-    $todayChange = $todayChange ?? 0;
+
+    $totalProducts = $totalUsers = $totalOrders = $transactions = 0;
+    $totalCartClicks = $totalCartQuantity = 0;
+    $totalCartValue = $totalSales = $payments = $totalProfit = 0.0;
+    $pendingOrders = $processingOrders = $shippedOrders = 0;
+    $deliveredOrders = $cancelledOrders = 0;
+    $fulfilledOrders = $partiallyFulfilledOrders = $unfulfilledOrders = 0;
+    $pendingPayments = $failedPayments = $refundedPayments = 0;
+    $chartLabels = $salesData = $ordersData = $cartClickData = $cartQuantityData = [];
+    $popularProducts = $recentOrders = collect();
+    $todayChange = 0;
+
+    $firstColumn = function (string $table, array $columns) use ($Schema) {
+        foreach ($columns as $column) {
+            if ($Schema::hasColumn($table, $column)) return $column;
+        }
+        return null;
+    };
+
+    $statusCount = function ($query, ?string $column, array $values) use ($DB): int {
+        if (!$column) return 0;
+        return (clone $query)
+            ->whereIn($DB::raw("LOWER(TRIM(`{$column}`))"), $values)
+            ->count();
+    };
 
     try {
-        if ($recentOrders->isEmpty() && \Illuminate\Support\Facades\Schema::hasTable('orders')) {
-            $recentOrders = \Illuminate\Support\Facades\DB::table('orders')
-                ->orderByDesc(\Illuminate\Support\Facades\Schema::hasColumn('orders', 'created_at') ? 'created_at' : 'id')
+        if ($Schema::hasTable('products')) {
+            $totalProducts = $DB::table('products')->count();
+        }
+        if ($Schema::hasTable('users')) {
+            $totalUsers = $DB::table('users')->count();
+        }
+
+        if ($Schema::hasTable('orders')) {
+            $ordersQuery = $DB::table('orders');
+            $amountColumn = $firstColumn('orders', [
+                'total_amount', 'grand_total', 'total', 'amount',
+                'total_price', 'payable_amount', 'order_total', 'subtotal'
+            ]);
+            $dateColumn = $firstColumn('orders', ['created_at', 'order_date', 'date']);
+            $paymentColumn = $firstColumn('orders', ['payment_status', 'billing_status', 'paid_status']);
+            $deliveryColumn = $firstColumn('orders', ['delivery_status', 'order_status', 'status']);
+            $fulfillmentColumn = $firstColumn('orders', ['fulfillment_status', 'fulfilment_status']);
+
+            $totalOrders = (clone $ordersQuery)->count();
+            $transactions = $totalOrders;
+            $totalSales = $amountColumn ? (float) (clone $ordersQuery)->sum($amountColumn) : 0.0;
+
+            $paidValues = ['paid', 'completed', 'complete', 'success', 'successful', 'succeeded', 'captured'];
+            $pendingPaymentValues = ['pending', 'unpaid', 'pending payment', 'pending_payment', 'cod'];
+
+            if ($paymentColumn) {
+                $payments = $amountColumn
+                    ? (float) (clone $ordersQuery)
+                        ->whereIn($DB::raw("LOWER(TRIM(`{$paymentColumn}`))"), $paidValues)
+                        ->sum($amountColumn)
+                    : 0.0;
+                $pendingPayments = $statusCount($ordersQuery, $paymentColumn, $pendingPaymentValues);
+                $failedPayments = $statusCount($ordersQuery, $paymentColumn, ['failed', 'declined']);
+                $refundedPayments = $statusCount($ordersQuery, $paymentColumn, ['refunded', 'refund', 'partially_refunded']);
+            } else {
+                $payments = $totalSales;
+            }
+
+            /* Cost price is not present in the supplied tables, so profit is estimated at 20%. */
+            $totalProfit = $totalSales * 0.20;
+
+            $pendingOrders = $deliveryColumn
+                ? $statusCount($ordersQuery, $deliveryColumn, ['pending', 'new'])
+                : $totalOrders;
+            $processingOrders = $statusCount($ordersQuery, $deliveryColumn, [
+                'processing', 'confirmed', 'accepted', 'paid', 'preparing'
+            ]);
+            $shippedOrders = $statusCount($ordersQuery, $deliveryColumn, [
+                'shipped', 'dispatched', 'on the way', 'on_the_way',
+                'out for delivery', 'out_for_delivery'
+            ]);
+            $deliveredOrders = $statusCount($ordersQuery, $deliveryColumn, [
+                'delivered', 'completed', 'complete'
+            ]);
+            $cancelledOrders = $statusCount($ordersQuery, $deliveryColumn, [
+                'cancelled', 'canceled', 'returned', 'refunded', 'failed'
+            ]);
+
+            $fulfilledOrders = $statusCount($ordersQuery, $fulfillmentColumn, [
+                'fulfilled', 'completed', 'complete'
+            ]);
+            $partiallyFulfilledOrders = $statusCount($ordersQuery, $fulfillmentColumn, [
+                'partially_fulfilled', 'partially fulfilled', 'partial'
+            ]);
+            $unfulfilledOrders = $fulfillmentColumn
+                ? $statusCount($ordersQuery, $fulfillmentColumn, [
+                    'unfulfilled', 'pending', 'not_fulfilled', 'not fulfilled'
+                ])
+                : $totalOrders;
+
+            $recentOrders = (clone $ordersQuery)
+                ->orderByDesc($dateColumn ?: 'id')
                 ->limit(6)
                 ->get();
+
+            $now = now();
+            if ($period === 'day') {
+                $start = $now->copy()->startOfDay();
+                $end = $now->copy()->endOfDay();
+                $points = collect(range(0, 23))->map(fn ($i) => $start->copy()->addHours($i));
+                $phpFormat = 'Y-m-d H'; $sqlFormat = '%Y-%m-%d %H';
+                $chartLabels = $points->map(fn ($date) => $date->format('g A'))->all();
+            } elseif ($period === 'month') {
+                $start = $now->copy()->startOfMonth();
+                $end = $now->copy()->endOfMonth();
+                $points = collect(range(0, $now->daysInMonth - 1))->map(fn ($i) => $start->copy()->addDays($i));
+                $phpFormat = 'Y-m-d'; $sqlFormat = '%Y-%m-%d';
+                $chartLabels = $points->map(fn ($date) => $date->format('d M'))->all();
+            } elseif ($period === 'year') {
+                $start = $now->copy()->startOfYear();
+                $end = $now->copy()->endOfYear();
+                $points = collect(range(0, 11))->map(fn ($i) => $start->copy()->addMonths($i));
+                $phpFormat = 'Y-m'; $sqlFormat = '%Y-%m';
+                $chartLabels = $points->map(fn ($date) => $date->format('M'))->all();
+            } else {
+                $start = $now->copy()->subDays(6)->startOfDay();
+                $end = $now->copy()->endOfDay();
+                $points = collect(range(0, 6))->map(fn ($i) => $start->copy()->addDays($i));
+                $phpFormat = 'Y-m-d'; $sqlFormat = '%Y-%m-%d';
+                $chartLabels = $points->map(fn ($date) => $date->format('D'))->all();
+            }
+
+            $salesBuckets = $orderBuckets = collect();
+            if ($dateColumn) {
+                $chartQuery = $DB::table('orders')
+                    ->whereBetween($dateColumn, [$start, $end])
+                    ->selectRaw("DATE_FORMAT(`{$dateColumn}`, '{$sqlFormat}') AS bucket")
+                    ->selectRaw('COUNT(*) AS order_count');
+                if ($amountColumn) {
+                    $chartQuery->selectRaw("SUM(`{$amountColumn}`) AS sales_total");
+                }
+                $chartRows = $chartQuery->groupBy('bucket')->get();
+                $salesBuckets = $chartRows->pluck('sales_total', 'bucket');
+                $orderBuckets = $chartRows->pluck('order_count', 'bucket');
+            }
+            $salesData = $points->map(fn ($date) => (float) ($salesBuckets[$date->format($phpFormat)] ?? 0))->all();
+            $ordersData = $points->map(fn ($date) => (int) ($orderBuckets[$date->format($phpFormat)] ?? 0))->all();
         }
 
-        if ($cancelledOrders === 0 && \Illuminate\Support\Facades\Schema::hasTable('orders')) {
-            $dashboardStatusColumn = collect(['status', 'order_status', 'delivery_status'])
-                ->first(fn ($column) => \Illuminate\Support\Facades\Schema::hasColumn('orders', $column));
+        if ($Schema::hasTable('cart_activities')) {
+            $cartQuery = $DB::table('cart_activities');
+            $quantityColumn = $firstColumn('cart_activities', ['quantity', 'qty']);
+            $cartAmountColumn = $firstColumn('cart_activities', ['total_amount', 'cart_value', 'amount']);
+            $totalCartClicks = (clone $cartQuery)->count();
+            $totalCartQuantity = $quantityColumn ? (int) (clone $cartQuery)->sum($quantityColumn) : $totalCartClicks;
+            $totalCartValue = $cartAmountColumn ? (float) (clone $cartQuery)->sum($cartAmountColumn) : 0.0;
+            $cartClickData = array_fill(0, count($chartLabels), 0);
+            $cartQuantityData = array_fill(0, count($chartLabels), 0);
 
-            if ($dashboardStatusColumn) {
-                $cancelledOrders = \Illuminate\Support\Facades\DB::table('orders')
-                    ->whereIn(
-                        \Illuminate\Support\Facades\DB::raw("LOWER(TRIM({$dashboardStatusColumn}))"),
-                        ['cancelled', 'canceled', 'refunded', 'failed']
-                    )->count();
+            if ($Schema::hasColumn('cart_activities', 'product_id') && $Schema::hasTable('products')) {
+                $productNameColumn = $firstColumn('products', ['name', 'title', 'product_name']);
+                if ($productNameColumn) {
+                    $popularProducts = $DB::table('cart_activities as ca')
+                        ->leftJoin('products as p', 'p.id', '=', 'ca.product_id')
+                        ->select('ca.product_id', "p.{$productNameColumn} as product_name")
+                        ->selectRaw('COUNT(*) as total_clicks')
+                        ->selectRaw($quantityColumn ? "SUM(ca.`{$quantityColumn}`) as total_quantity" : 'COUNT(*) as total_quantity')
+                        ->groupBy('ca.product_id', "p.{$productNameColumn}")
+                        ->orderByDesc('total_quantity')
+                        ->limit(6)
+                        ->get()
+                        ->map(function ($item) {
+                            $item->product = (object) ['name' => $item->product_name ?: 'Product'];
+                            return $item;
+                        });
+                }
             }
+        } else {
+            $cartClickData = array_fill(0, count($chartLabels), 0);
+            $cartQuantityData = array_fill(0, count($chartLabels), 0);
         }
     } catch (\Throwable $exception) {
+        \Illuminate\Support\Facades\Log::error('Dynamic admin dashboard: '.$exception->getMessage());
         $recentOrders = collect();
     }
 @endphp
+
+<style>
+  .dashboard-money-card{min-width:0;overflow:hidden}
+  .dashboard-money-value{
+    display:block;width:100%;max-width:100%;margin-bottom:.5rem;
+    color:#566a7f;font-size:clamp(1.05rem,1.5vw,1.65rem);
+    font-weight:600;line-height:1.25;white-space:normal!important;
+    overflow-wrap:anywhere;word-break:break-word
+  }
+  .dashboard-small-money{
+    display:block;max-width:100%;overflow:hidden;
+    font-size:clamp(.72rem,.95vw,.95rem);
+    text-overflow:ellipsis;white-space:nowrap
+  }
+  .dashboard-profile-card{min-height:180px;overflow:hidden}
+  .dashboard-profile-layout{min-width:0}
+  .dashboard-profile-chart{
+    position:relative;width:145px;max-width:45%;height:85px;
+    flex:0 0 145px;overflow:hidden
+  }
+  .dashboard-profile-chart canvas{
+    display:block!important;width:100%!important;max-width:100%!important;
+    height:85px!important;max-height:85px!important
+  }
+  @media(max-width:1399.98px){
+    .dashboard-money-value{font-size:1.12rem}
+    .dashboard-profile-chart{width:118px;flex-basis:118px}
+  }
+  @media(max-width:575.98px){
+    .dashboard-money-value{font-size:1rem}
+    .dashboard-profile-chart{width:100%;max-width:100%;height:90px;flex-basis:100%}
+  }
+</style>
 
    <!-- Layout wrapper -->
 
@@ -97,7 +275,7 @@
                 <div class="col-lg-4 col-md-4 order-1">
                   <div class="row">
                     <div class="col-lg-6 col-md-12 col-6 mb-4">
-                      <div class="card">
+                      <div class="card dashboard-money-card">
                         <div class="card-body">
                           <div class="card-title d-flex align-items-start justify-content-between">
                             <div class="avatar flex-shrink-0">
@@ -125,13 +303,13 @@
                             </div>
                           </div>
                           <span class="fw-semibold d-block mb-1">Profit</span>
-                          <h3 class="card-title mb-2">{{ $currency }}{{ number_format((float) $totalProfit, 2) }}</h3>
+                          <h3 class="card-title dashboard-money-value">{{ $currency }}{{ number_format((float) $totalProfit, 2) }}</h3>
                           <small class="{{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }} fw-semibold"><i class="bx {{ $totalProfit >= 0 ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' }}"></i> Live profit</small>
                         </div>
                       </div>
                     </div>
                     <div class="col-lg-6 col-md-12 col-6 mb-4">
-                      <div class="card">
+                      <div class="card dashboard-money-card">
                         <div class="card-body">
                           <div class="card-title d-flex align-items-start justify-content-between">
                             <div class="avatar flex-shrink-0">
@@ -159,7 +337,7 @@
                             </div>
                           </div>
                           <span>Sales</span>
-                          <h3 class="card-title text-nowrap mb-1">{{ $currency }}{{ number_format((float) $totalSales, 2) }}</h3>
+                          <h3 class="card-title dashboard-money-value">{{ $currency }}{{ number_format((float) $totalSales, 2) }}</h3>
                           <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> {{ ucfirst($period) }} sales</small>
                         </div>
                       </div>
@@ -206,7 +384,7 @@
                             </div>
                             <div class="d-flex flex-column">
                               <small>Sales</small>
-                              <h6 class="mb-0">{{ $currency }}{{ number_format((float)$totalSales,2) }}</h6>
+                              <h6 class="mb-0 dashboard-small-money">{{ $currency }}{{ number_format((float)$totalSales,2) }}</h6>
                             </div>
                           </div>
                           <div class="d-flex">
@@ -215,7 +393,7 @@
                             </div>
                             <div class="d-flex flex-column">
                               <small>Profit</small>
-                              <h6 class="mb-0">{{ $currency }}{{ number_format((float)$totalProfit,2) }}</h6>
+                              <h6 class="mb-0 dashboard-small-money">{{ $currency }}{{ number_format((float)$totalProfit,2) }}</h6>
                             </div>
                           </div>
                         </div>
@@ -227,7 +405,7 @@
                 <div class="col-12 col-md-8 col-lg-4 order-3 order-md-2">
                   <div class="row">
                     <div class="col-6 mb-4">
-                      <div class="card">
+                      <div class="card dashboard-money-card">
                         <div class="card-body">
                           <div class="card-title d-flex align-items-start justify-content-between">
                             <div class="avatar flex-shrink-0">
@@ -251,13 +429,13 @@
                             </div>
                           </div>
                           <span class="d-block mb-1">Payments</span>
-                          <h3 class="card-title text-nowrap mb-2">{{ $currency }}{{ number_format((float)$payments,2) }}</h3>
+                          <h3 class="card-title dashboard-money-value">{{ $currency }}{{ number_format((float)$payments,2) }}</h3>
                           <small class="text-success fw-semibold"><i class="bx bx-check"></i> Paid amount</small>
                         </div>
                       </div>
                     </div>
                     <div class="col-6 mb-4">
-                      <div class="card">
+                      <div class="card dashboard-money-card">
                         <div class="card-body">
                           <div class="card-title d-flex align-items-start justify-content-between">
                             <div class="avatar flex-shrink-0">
@@ -289,9 +467,9 @@
                     <!-- </div>
     <div class="row"> -->
                     <div class="col-12 mb-4">
-                      <div class="card">
+                      <div class="card dashboard-profile-card">
                         <div class="card-body">
-                          <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
+                          <div class="d-flex justify-content-between flex-sm-row flex-column gap-3 dashboard-profile-layout">
                             <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
                               <div class="card-title">
                                 <h5 class="text-nowrap mb-2">Profile Report</h5>
@@ -299,10 +477,10 @@
                               </div>
                               <div class="mt-sm-auto">
                                 <small class="text-success text-nowrap fw-semibold"><i class="bx bx-chevron-up"></i> Live revenue</small>
-                                <h3 class="mb-0">{{ $currency }}{{ number_format((float)$totalSales,2) }}</h3>
+                                <h3 class="mb-0 dashboard-money-value">{{ $currency }}{{ number_format((float)$totalSales,2) }}</h3>
                               </div>
                             </div>
-                            <div style="width:145px;height:85px"><canvas id="dynamicProfileChart"></canvas></div>
+                            <div class="dashboard-profile-chart"><canvas id="dynamicProfileChart"></canvas></div>
                           </div>
                         </div>
                       </div>
@@ -375,23 +553,13 @@
                     <div class="card-header">
                       <ul class="nav nav-pills" role="tablist">
                         <li class="nav-item">
-                          <button
-                            type="button"
-                            class="nav-link active"
-                            role="tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#navs-tabs-line-card-income"
-                            aria-controls="navs-tabs-line-card-income"
-                            aria-selected="true"
-                          >
-                            Income
-                          </button>
+                          <a class="nav-link active" href="{{ route('admin.finance.income') }}">Income</a>
                         </li>
                         <li class="nav-item">
-                          <button type="button" class="nav-link" role="tab">Expenses</button>
+                          <a class="nav-link" href="{{ route('admin.finance.expenses') }}">Expenses</a>
                         </li>
                         <li class="nav-item">
-                          <button type="button" class="nav-link" role="tab">Profit</button>
+                          <a class="nav-link" href="{{ route('admin.finance.profit') }}">Profit</a>
                         </li>
                       </ul>
                     </div>
@@ -457,7 +625,7 @@
                       <ul class="p-0 m-0">
                         @forelse($recentOrders as $order)
                           @php
-                            $orderNumber = $order->order_number ?? $order->uuid ?? $order->id ?? '-';
+                            $orderNumber = $order->order_no ?? $order->order_number ?? $order->uuid ?? $order->id ?? '-';
                             $customerName = $order->customer_name ?? $order->billing_name ?? $order->name ?? $order->email ?? 'Guest';
                             $orderStatus = $order->status ?? $order->order_status ?? $order->delivery_status ?? 'pending';
                             $orderAmount = $order->grand_total ?? $order->total_amount ?? $order->total_price ?? $order->total ?? $order->amount ?? 0;

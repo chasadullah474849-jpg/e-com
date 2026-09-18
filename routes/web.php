@@ -32,6 +32,8 @@ use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\FinanceReportController;
+
 
 
 use App\Http\Controllers\Auth\LoginController;
@@ -1009,3 +1011,39 @@ Route::get(
     '/admin/analytics',
     [AnalyticsController::class, 'index']
 )->name('admin.analytics.index');
+
+
+
+
+
+
+
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get(
+            '/finance/income',
+            [FinanceReportController::class, 'income']
+        )->name('finance.income');
+
+        Route::get(
+            '/finance/expenses',
+            [FinanceReportController::class, 'expenses']
+        )->name('finance.expenses');
+
+        Route::get(
+            '/finance/profit',
+            [FinanceReportController::class, 'profit']
+        )->name('finance.profit');
+
+        Route::post(
+            '/finance/expenses',
+            [FinanceReportController::class, 'storeExpense']
+        )->name('finance.expenses.store');
+
+        Route::delete(
+            '/finance/expenses/{expense}',
+            [FinanceReportController::class, 'destroyExpense']
+        )->name('finance.expenses.destroy');
+    });
